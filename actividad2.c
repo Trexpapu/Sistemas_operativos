@@ -104,7 +104,6 @@ int main(void) {
     while(x!=10){
         x = atiende_shell(comando, &j);
         if(x==200){
-            printf("El archivo sista %s: \n", archivo);
             memset(comando, 0, sizeof(comando));
             j=0;
             leer_archivo(archivo);
