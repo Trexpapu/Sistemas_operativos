@@ -3,9 +3,8 @@
 #include <time.h>
 #include <string.h>
 #include<unistd.h>
-
-
 #include "kbhit.h"
+
 char archivo[100];
 int leer_archivo(char archivo[100]){
     FILE *n_archivo;
@@ -27,7 +26,7 @@ int leer_archivo(char archivo[100]){
     return 0;
 
 }
-int validar_comando_load(char *comando){
+int validar_comandos(char *comando){
     char accion[100];
     //verificar que esta bien el comando LOAD FILE
                 if (sscanf(comando, "%s %s", accion, archivo)==2){
@@ -51,8 +50,10 @@ int validar_comando_load(char *comando){
                     if (strcmp(accion, "load") == 0){
                         //printf("Error el comando es: load file\n");
                         return 410;
+                    }else if(strcmp(accion, "exit") == 0){
+                        return 10;
                     }else{
-                       // printf("comando no reconocido\n");
+                        // printf("comando no reconocido\n");
                         return 400;
                     }
                     
@@ -62,15 +63,7 @@ int validar_comando_load(char *comando){
     
 }
 
-int salir(char *comando){
-    char accion[100];
-    if (sscanf(comando, "%s", accion) == 1){
-        if (strcmp(accion, "exit") == 0){
-            return 1;
-        }
-    return 0;
-}
-}
+
 
 int atiende_shell(char *comando, int *j) {
 
@@ -80,10 +73,7 @@ int atiende_shell(char *comando, int *j) {
         
         if(comando[*j] == '\n'){
             comando[*j] = '\0';
-            if(salir(comando)){
-                return 10;
-            }
-            return validar_comando_load(comando);
+            return validar_comandos(comando);
 
 
         }else{
@@ -107,6 +97,7 @@ int main(void) {
             memset(comando, 0, sizeof(comando));
             j=0;
             leer_archivo(archivo);
+            printf("\n");
         }
         if(x==405){
             printf("No existe el archivo ingresado\n");
