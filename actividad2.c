@@ -107,8 +107,6 @@ int main(void) {
             memset(comando, 0, sizeof(comando));
             j=0;
             leer_archivo(archivo);
-            printf("Prompt> %s", comando);
-            printf("\n");
         }
         if(x==405){
             printf("No existe el archivo ingresado\n");
