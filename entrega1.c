@@ -64,6 +64,7 @@ int atiende_shell(char *comando, int *j, int *y) {
         // Imprimir el prompt y el comando
         mvprintw(*y, 0, "PROMPT > %s", comando);
     }
+    refresh();
 
     return 0;
 }
@@ -77,48 +78,64 @@ void prints(int *y, char *comando){
     refresh();
 }
 
-int main(void) {
-    char comando[60] = {0};
-    int j = 0;
-    int x = 0;
-    int y = 0;
-    initscr();
-    prints(&y, comando);
-    while (x != 10) {
-        x = atiende_shell(comando, &j, &y);
-        switch (x) {
+void mostrar_mensajes(int x, char *comando, int *j, int *y){
+    int error_de_archivo=0;
+    switch (x) {
             case 200:
                 mvprintw(40, 10, "                                                                                                               ");
                 mvprintw(40, 10, "Comando ejecutado exitosamente");
-                memset(comando, 0, j);
-                j = 0;
-                mvprintw(y, 0, "PROMPT > %s", comando);
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                error_de_archivo=verificar_archivo(archivo);
+                if (error_de_archivo==800){
+                    mvprintw(40, 10, "                                                                                                               ");
+                    mvprintw(40, 10, "Error al abrir el archivo");
+                }else{
+                    leer_archivo(archivo);
+                }
+                mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
                 
             case 405:
                 mvprintw(40, 10, "                                                                                                               ");
                 mvprintw(40, 10, "No existe el archivo ingresado");
-                memset(comando, 0, j);
-                j = 0;
-                mvprintw(y, 0, "PROMPT > %s", comando);
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
+
             case 410:
                 mvprintw(40, 10, "                                                                                                               ");
                 mvprintw(40, 10, "Error uso correcto del comando, ejemplo load file.txt");
-                memset(comando, 0, j);
-                j = 0;
-                mvprintw(y, 0, "PROMPT > %s", comando);
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
+
             case 400:
                 mvprintw(40, 10, "                                                                                                               ");
                 mvprintw(40, 10, "Comando invalido");
-                memset(comando, 0, j);
-                j = 0;
-                mvprintw(y, 0, "PROMPT > %s", comando);
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
                 
         }
         refresh();
+
+}
+
+int main(void) {
+    char comando[60] = {0};
+    int posicion_de_char = 0;
+    int recibe_valores = 0;
+    int nivel_de_prompt = 0;
+    initscr();
+    prints(&nivel_de_prompt, comando);
+    prints_procesador();
+    while (recibe_valores != 10) {
+        recibe_valores = atiende_shell(comando, &posicion_de_char, &nivel_de_prompt);
+        mostrar_mensajes(recibe_valores, comando, &posicion_de_char, &nivel_de_prompt);
     }
 
     endwin();
