@@ -65,25 +65,30 @@ int validar_comandos(char *comando){
 
 
 
-int atiende_shell(char *comando, int *j) {
+int atiende_shell(char *comando, int *j, int *y) {
+   // int ch = getch(); // Leer la entrada del usuario
 
-    if (kbhit()) {
-        // Read user input, only one character at a time
-        comando[*j] = getchar();
-        
-        if(comando[*j] == '\n'){
-            comando[*j] = '\0';
+    if (kbhit()) { // Comprobar si se presionó una tecla
+        comando[*j] = getch(); // Almacenar la tecla en el comando
+
+        if (comando[*j] == '\n') {//verificar si la tecla fue enter
+            comando[*j] = '\0';//eliminar enter
+            (*y)++; // Incrementar y para pasar a la siguiente línea
             return validar_comandos(comando);
 
 
-        }else{
+        } else {
             (*j)++;
         }
-        printf("Prompt> %s", comando);
-        printf("\n");
+
+        // Imprimir el prompt y el comando
+        mvprintw(*y, 0, "PROMPT > %s", comando);
     }
+    refresh();
+
     return 0;
 }
+
 
 int main(void) {
     char comando[60] = {0}; // Initialize the array with zeros
