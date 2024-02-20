@@ -3,6 +3,7 @@
 #include <time.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h> // Para la función toupper
 struct PCB
 {
     char IR[100];
@@ -13,10 +14,33 @@ struct PCB
     int PC;
 };
 
+void librerar_recursos(){
+    struct PCB pcb = {"", 0, 0, 0, 0, 0};
+}
+
+int validar_operaciones(const char *linea) {
+    char operacion[10];
+    char p1[10];
+    char p2[20];
+    if (sscanf(linea, "%s %s %s", operacion, p1, p2) == 3){//si la linea tiene 3 strings
+        // Convertir operacion a mayúsculas
+        for (int i = 0; operacion[i] != '\0'; i++) {
+            operacion[i] = toupper(operacion[i]);
+        }
+        if (strcmp(operacion, "MOV") == 0){
+            
+        }
+    }else{//si la linea no se compone de 3 strings ejemplo MOV AX 2
+        return 405;
+    }
+
+    return 0;
+}
 
 int leer_archivo(char archivo[100]){
     struct PCB pcb;
     pcb.PC=0;
+    int error = 0;
     FILE *n_archivo;
     n_archivo = fopen(archivo, "r");
     // Lee y muestra cada línea del archivo
@@ -26,6 +50,15 @@ int leer_archivo(char archivo[100]){
         pcb.PC++;
         mvprintw(20, 100, "PC:         ");
         mvprintw(20, 100, "PC: %d", pcb.PC);
+        error = validar_operaciones(pcb.IR);
+        if (error == 405){//error de sintaxis en el archivo
+            return error;
+        }else if(error == 425){//cuando se encuentra la palabra END en el archivo
+            librerar_recursos(); //LIBERAMOS RECURSOS
+            break;
+        }
+
+
         usleep(500000);
         refresh();
     }
