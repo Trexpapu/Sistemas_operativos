@@ -16,9 +16,12 @@ struct PCB
     int PC;
 };
 
-void librerar_recursos(){
-    struct PCB pcb = {"", 0, 0, 0, 0, 0};
+void librerar_recursos(struct PCB *pcb) {
+    free(pcb);
 }
+
+
+
 
 void toUPPER(char *cadena){
     for (int i = 0; cadena[i] != '\0'; i++) {
@@ -359,7 +362,7 @@ int EsDigito(char *numero){
         }
         if (digito==0){
             if(negativo==0){
-            return atoi(numero);
+                return atoi(numero);
             }else{
                 return strtol(numero, NULL, 10);
             }
@@ -415,9 +418,9 @@ int validar_operaciones(const char *linea, struct PCB *pcb) {
     char p1[10];
     char p2[20];
     char error[20];
-    int registro=0;
+    int registro=0;//registro
     int operador_de_3=0;//operador cuando se trata de mov, div, mul, add
-    int valor_p2 = 0;
+    int valor_p2 = 0;//registro o numerico
 
 
     if (sscanf(linea, "%s %s %s %s", operacion, p1, p2, error) == 3){//si la linea tiene 3 strings
@@ -475,39 +478,43 @@ int validar_operaciones(const char *linea, struct PCB *pcb) {
     return 0;
 }
 
-int leer_archivo(char archivo[100]){
-    struct PCB pcb = {"", 0, 0, 0, 0, 0};
+int leer_archivo(char archivo[100], struct PCB *pcb){
+    pcb->AX=0;
+    pcb->BX=0;
+    pcb->CX=0;
+    pcb->DX;
+    pcb->PC=0;
+    
     int error = 0;
     FILE *n_archivo;
     n_archivo = fopen(archivo, "r");
     // Lee y muestra cada línea del archivo
-    while (fgets(pcb.IR, sizeof(pcb.IR), n_archivo) != NULL) {
+    while (fgets(pcb->IR, sizeof(pcb->IR), n_archivo) != NULL) {
         mvprintw(25, 100, "IR                                                                       ");
-        mvprintw(25, 100, "IR: %s", pcb.IR);//imprimimos el IR, cada linea de archivo
+        mvprintw(25, 100, "IR: %s", pcb->IR);//imprimimos el IR, cada linea de archivo
 
-        pcb.PC++;
+        pcb->PC++;
         mvprintw(20, 100, "PC:         ");
-        mvprintw(20, 100, "PC: %d", pcb.PC);//imprimimos el PC, contador de las lineas de archivo
+        mvprintw(20, 100, "PC: %d", pcb->PC);//imprimimos el PC, contador de las lineas de archivo
 
         mvprintw(0, 100, "AX:                                                                       ");
-        mvprintw(0, 100, "AX: %d", pcb.AX);
+        mvprintw(0, 100, "AX: %d", pcb->AX);
 
         mvprintw(5, 100, "BX:                                                                       ");
-        mvprintw(5, 100, "BX: %d", pcb.BX);
+        mvprintw(5, 100, "BX: %d", pcb->BX);
 
         mvprintw(10, 100, "CX:                                                                       ");
-        mvprintw(10, 100, "CX: %d", pcb.CX);
+        mvprintw(10, 100, "CX: %d", pcb->CX);
 
         mvprintw(15, 100, "DX:                                                                       ");
-        mvprintw(15, 100, "DX: %d", pcb.DX);
+        mvprintw(15, 100, "DX: %d", pcb->DX);
 
         usleep(400000); //espera para ver cada lectura del archivo
-        error = validar_operaciones(pcb.IR, &pcb);
+        error = validar_operaciones(pcb->IR, pcb);
         if (error == 405){//error de sintaxis en el archivo
-            //librerar_recursos();//modificar librerar recursosFWFAWFAWFAFAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+             
             return error;
         }else if(error == 425){//cuando se encuentra la palabra END en el archivo
-            //librerar_recursos(); //LIBERAMOS RECURSOS
             break;
         }
         refresh();
@@ -534,12 +541,11 @@ int verificar_archivo(char archivo[100]){
 }
 
 void prints_procesador(){
-    struct PCB pcb = {"", 0, 0, 0, 0, 0};
-    mvprintw(0, 100, "AX: %d", pcb.AX);
-    mvprintw(5, 100, "BX: %d", pcb.BX);
-    mvprintw(10, 100, "CX: %d", pcb.CX);
-    mvprintw(15, 100, "DX: %d", pcb.DX);
-    mvprintw(20, 100, "PC: %d", pcb.PC);
+    mvprintw(0, 100, "AX: %d", 0);
+    mvprintw(5, 100, "BX: %d", 0);
+    mvprintw(10, 100, "CX: %d", 0);
+    mvprintw(15, 100, "DX: %d", 0);
+    mvprintw(20, 100, "PC: %d", 0);
     mvprintw(25, 100, "IR:");
     mvprintw(0,0,"");
     refresh();
