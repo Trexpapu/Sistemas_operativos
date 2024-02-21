@@ -143,7 +143,7 @@ int main(void) {
     prints_procesador();
     while (recibe_valores != 10) {
         recibe_valores = atiende_shell(comando, &posicion_de_char, &nivel_de_prompt);
-        mostrar_mensajes(recibe_valores, comando, &posicion_de_char, &nivel_de_prompt); // la funcion mostrar mensajes tambien llama las funciones de lectura de archivo
+        mostrar_mensajes(recibe_valores, comando, &posicion_de_char, &nivel_de_prompt); // la funcion mostrar mensajes tambien llama las funciones de lectura de archivo  
     }
 
     endwin();
