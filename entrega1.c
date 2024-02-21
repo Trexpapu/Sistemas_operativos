@@ -58,6 +58,13 @@ int atiende_shell(char *comando, int *j, int *y) {
         } else {
             (*j)++;
         }
+        if((*y)>=20){//limpiar la pantalla cuando mi prompt llegue a cierto limite
+            for (int i =0; i<=20;i++){
+                mvprintw(i, 0, "                   ");
+            }
+            (*y)=0;
+
+        }
         
         // Imprimir el prompt y el comando
         mvprintw(*y, 0, "PROMPT > %s", comando);
@@ -76,7 +83,7 @@ void prints(int *y, char *comando){
     refresh();
 }
 
-void mostrar_mensajes(int x, char *comando, int *j, int *y){
+void mostrar_mensajes(int x, char *comando, int *j, int *y, struct PCB *pcb){
     int error_de_archivo=0;
     int error_leyendo_archivo = 0;
     switch (x) {
@@ -93,7 +100,7 @@ void mostrar_mensajes(int x, char *comando, int *j, int *y){
                     mvprintw(40, 10, "                                                                                                               ");
                     mvprintw(40, 10, "Error al abrir el archivo");
                 }else{//si no regresa 800
-                    error_leyendo_archivo = leer_archivo(archivo);//leemos el archivo y vemos si no hay algun error de sintaxis, de ser asi mostraremos un mensaje
+                    error_leyendo_archivo = leer_archivo(archivo, pcb);//leemos el archivo y vemos si no hay algun error de sintaxis, de ser asi mostraremos un mensaje
                     if (error_leyendo_archivo == 405){
                         mvprintw(40, 10, "                                                                                                               ");
                         mvprintw(40, 10, "Error de sintaxis en el archivo");
@@ -134,19 +141,24 @@ void mostrar_mensajes(int x, char *comando, int *j, int *y){
 }
 
 int main(void) {
+    struct PCB *pcb = malloc(sizeof(struct PCB));//reservamos la estructura
+    
+    
     char comando[60] = {0};
     int posicion_de_char = 0;
     int recibe_valores = 0;
     int nivel_de_prompt = 0;
+    
     initscr();
     prints(&nivel_de_prompt, comando);
     prints_procesador();
+    
     while (recibe_valores != 10) {
         recibe_valores = atiende_shell(comando, &posicion_de_char, &nivel_de_prompt);
-        mostrar_mensajes(recibe_valores, comando, &posicion_de_char, &nivel_de_prompt); // la funcion mostrar mensajes tambien llama las funciones de lectura de archivo  
+        mostrar_mensajes(recibe_valores, comando, &posicion_de_char, &nivel_de_prompt, pcb);
     }
 
     endwin();
-
+    librerar_recursos(pcb);//liberamos recursos
     return 0;
 }
