@@ -64,7 +64,7 @@ int atiende_shell(char *comando, int *j, int *y) {
 
         if((*y)>=20){//limpiar la pantalla cuando mi prompt llegue a cierto limite
             for (int i =0; i<=20;i++){
-                mvprintw(i, 0, "                                         ");
+                mvprintw(i, 0, "                                                                                         ");
             }
             (*y)=0;
 
@@ -142,7 +142,7 @@ int mostrar_mensajes(int x, char *comando, int *j, int *y){
 
 void mostrar_error_de_archivo(struct PCB *pcb){
     mvprintw(40, 10, "                                                                                                               ");
-    mvprintw(40, 10, "Error de sintaxis %s No es instruccion valida", pcb->IR);
+    mvprintw(40, 10, "Error de sintaxis %s", pcb->IR);
     refresh();
 }
 
