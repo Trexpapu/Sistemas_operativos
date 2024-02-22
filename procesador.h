@@ -413,7 +413,7 @@ void realizar_inc_o_dec(int opcion, int registro, struct PCB *pcb){
     }
 }
 
-int validar_operaciones(const char *linea, struct PCB *pcb) {
+int validar_operaciones(struct PCB *pcb) {
     char operacion[10];
     char p1[10];
     char p2[20];
@@ -423,7 +423,7 @@ int validar_operaciones(const char *linea, struct PCB *pcb) {
     int valor_p2 = 0;//registro o numerico
 
 
-    if (sscanf(linea, "%s %s %s %s", operacion, p1, p2, error) == 3){//si la linea tiene 3 strings
+    if (sscanf(pcb->IR, "%s %s %s %s", operacion, p1, p2, error) == 3){//si la pcb->IR tiene 3 strings
         // Convertir operacion a mayúsculas las palabras
         toUPPER(operacion);
         toUPPER(p1);
@@ -446,7 +446,7 @@ int validar_operaciones(const char *linea, struct PCB *pcb) {
         }
         realizar_operaciones(operador_de_3, registro, valor_p2, pcb);
         
-    }else if(sscanf(linea, "%s %s %s %s", operacion, p1, p2, error) == 2){//si es inc o dec
+    }else if(sscanf(pcb->IR, "%s %s %s %s", operacion, p1, p2, error) == 2){//si es inc o dec
         toUPPER(operacion);
         toUPPER(p1);
         if (strcmp(operacion, "INC")==0){//si es inc
@@ -466,7 +466,7 @@ int validar_operaciones(const char *linea, struct PCB *pcb) {
         }else{
             return 405;
         }
-    }else if(sscanf(linea, "%s %s %s %s", operacion, p1, p2, error) == 1){
+    }else if(sscanf(pcb->IR, "%s %s %s %s", operacion, p1, p2, error) == 1){
         toUPPER(operacion);
         if(strcmp(operacion, "END")==0){
             return 425;
@@ -478,18 +478,11 @@ int validar_operaciones(const char *linea, struct PCB *pcb) {
     return 0;
 }
 
-int leer_archivo(char archivo[100], struct PCB *pcb){
-    pcb->AX=0;
-    pcb->BX=0;
-    pcb->CX=0;
-    pcb->DX;
-    pcb->PC=0;
+int leer_archivo(struct PCB *pcb){
     
     int error = 0;
-    FILE *n_archivo;
-    n_archivo = fopen(archivo, "r");
     // Lee y muestra cada línea del archivo
-    while (fgets(pcb->IR, sizeof(pcb->IR), n_archivo) != NULL) {
+
         mvprintw(25, 100, "IR                                                                       ");
         mvprintw(25, 100, "IR: %s", pcb->IR);//imprimimos el IR, cada linea de archivo
 
@@ -509,19 +502,18 @@ int leer_archivo(char archivo[100], struct PCB *pcb){
         mvprintw(15, 100, "DX:                                                                       ");
         mvprintw(15, 100, "DX: %d", pcb->DX);
 
-        usleep(400000); //espera para ver cada lectura del archivo
-        error = validar_operaciones(pcb->IR, pcb);
+
+        usleep(300000); //espera para ver cada lectura del archivo
+        error = validar_operaciones(pcb);
         if (error == 405){//error de sintaxis en el archivo
              
             return error;
         }else if(error == 425){//cuando se encuentra la palabra END en el archivo
-            break;
+            return error;
         }
-        refresh();
-    }
+    
 
-    // Cierra el archivo
-    fclose(n_archivo);
+    
     refresh();
     return 0;
 
