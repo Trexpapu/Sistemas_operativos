@@ -367,7 +367,7 @@ int EsDigito(char *numero){
                 return strtol(numero, NULL, 10);
             }
         }else{
-            return 9999999;//si no es un registro ni un valor numerico 
+            return 9999999;//si no es un registro ni un valor numerico :(((((
         }
     return 0;
 }
@@ -419,7 +419,7 @@ int validar_operaciones(struct PCB *pcb) {
     char p2[20];
     char error[20];
     int registro=0;//registro
-    int operador_de_3=0;//operador cuando se trata de mov, div, mul, add
+    int operador_3=0;//operador cuando se trata de mov, div, mul, add
     int valor_p2 = 0;//registro o numerico
 
 
@@ -428,11 +428,11 @@ int validar_operaciones(struct PCB *pcb) {
         toUPPER(operacion);
         toUPPER(p1);
         toUPPER(p2);
-        operador_de_3=validar_operador(operacion);//validamos la primera parte como mov, div...
+        operador_3=validar_operador(operacion);//validamos la primera parte como mov, div...
         registro=validar_registro(p1);//validamos p1, es decir que sea un registro
         valor_p2 = validar_p2(p2);//validamos que p2 sea un registro o numero
 
-        if (operador_de_3==60){
+        if (operador_3==60){
             return 405;
         }
         if (registro==50){
@@ -441,10 +441,10 @@ int validar_operaciones(struct PCB *pcb) {
         if (valor_p2==9999999){
             return 405;
         }
-        if (operador_de_3==50 && valor_p2==0){//si la operaciones dividir y p2 es un cero
+        if (operador_3==50 && valor_p2==0){//si la operaciones dividir y p2 es un cero
             return 405;
         }
-        realizar_operaciones(operador_de_3, registro, valor_p2, pcb);
+        realizar_operaciones(operador_3, registro, valor_p2, pcb);
         
     }else if(sscanf(pcb->IR, "%s %s %s %s", operacion, p1, p2, error) == 2){//si es inc o dec
         toUPPER(operacion);
@@ -478,7 +478,7 @@ int validar_operaciones(struct PCB *pcb) {
     return 0;
 }
 
-int leer_archivo(struct PCB *pcb){
+int impresionPCB(struct PCB *pcb){
     
     int error = 0;
     // Lee y muestra cada línea del archivo
@@ -505,10 +505,11 @@ int leer_archivo(struct PCB *pcb){
 
         usleep(500000); //espera para ver cada lectura del archivo
         error = validar_operaciones(pcb);
-        if (error == 405){//error de sintaxis en el archivo
-             
+        if (error == 405){//error de sintaxis en el archivo       
             return error;
+
         }else if(error == 425){//cuando se encuentra la palabra END en el archivo
+
             return error;
         }
     
