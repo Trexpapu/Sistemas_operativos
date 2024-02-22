@@ -64,7 +64,7 @@ int atiende_shell(char *comando, int *j, int *y) {
 
         if((*y)>=20){//limpiar la pantalla cuando mi prompt llegue a cierto limite
             for (int i =0; i<=20;i++){
-                mvprintw(i, 0, "                   ");
+                mvprintw(i, 0, "                                         ");
             }
             (*y)=0;
 
@@ -140,9 +140,9 @@ int mostrar_mensajes(int x, char *comando, int *j, int *y){
     return 0;
 }
 
-void mostrar_error_de_archivo(){
-     mvprintw(40, 10, "                                                                                                               ");
-    mvprintw(40, 10, "Error de sintaxis en el archivo");
+void mostrar_error_de_archivo(struct PCB *pcb){
+    mvprintw(40, 10, "                                                                                                               ");
+    mvprintw(40, 10, "Error de sintaxis %s No es instruccion valida", pcb->IR);
     refresh();
 }
 
@@ -176,14 +176,14 @@ int main(void) {
         if (bandera==1){//si bandera es 1 entonces podemos seguir leyendo el archivo
 
             if (fgets(pcb->IR, sizeof(pcb->IR), n_archivo) != NULL){//leeemos la linea del archivo
-                x=leer_archivo(pcb);//ejecutamos funcion pasando la estructura
+                x=impresion_y_operaciones_PCB(pcb);//ejecutamos funcion pasando la estructura
                 if(x==425){//manejo de errores
                     fclose(n_archivo);
                     bandera=0;
                 }else if(x==405){
                     fclose(n_archivo);
                     bandera=0;
-                    mostrar_error_de_archivo();
+                    mostrar_error_de_archivo(pcb);
                 }
                 
 
