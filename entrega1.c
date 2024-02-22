@@ -45,6 +45,7 @@ int validar_comandos(char *comando){
                 return 0;
     
 }
+
 int atiende_shell(char *comando, int *j, int *y) {
     if (kbhit()) { // Comprobar si se presionó una tecla
         comando[*j] = getch(); // Almacenar la tecla en el comando
@@ -55,9 +56,12 @@ int atiende_shell(char *comando, int *j, int *y) {
             return validar_comandos(comando);
             
             
-        } else {
+        }else {
             (*j)++;
         }
+
+
+
         if((*y)>=20){//limpiar la pantalla cuando mi prompt llegue a cierto limite
             for (int i =0; i<=20;i++){
                 mvprintw(i, 0, "                   ");
@@ -83,9 +87,8 @@ void prints(int *y, char *comando){
     refresh();
 }
 
-void mostrar_mensajes(int x, char *comando, int *j, int *y, struct PCB *pcb){
+int mostrar_mensajes(int x, char *comando, int *j, int *y){
     int error_de_archivo=0;
-    int error_leyendo_archivo = 0;
     switch (x) {
 
             case 200:
@@ -100,11 +103,8 @@ void mostrar_mensajes(int x, char *comando, int *j, int *y, struct PCB *pcb){
                     mvprintw(40, 10, "                                                                                                               ");
                     mvprintw(40, 10, "Error al abrir el archivo");
                 }else{//si no regresa 800
-                    error_leyendo_archivo = leer_archivo(archivo, pcb);//leemos el archivo y vemos si no hay algun error de sintaxis, de ser asi mostraremos un mensaje
-                    if (error_leyendo_archivo == 405){
-                        mvprintw(40, 10, "                                                                                                               ");
-                        mvprintw(40, 10, "Error de sintaxis en el archivo");
-                    }
+                    mvprintw((*y), 0, "PROMPT > %s", comando);
+                    return 205;//se puede leer el archivo
                 }
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
@@ -137,17 +137,26 @@ void mostrar_mensajes(int x, char *comando, int *j, int *y, struct PCB *pcb){
                 
         }
         refresh();
+    return 0;
+}
 
+void mostrar_error_de_archivo(){
+     mvprintw(40, 10, "                                                                                                               ");
+    mvprintw(40, 10, "Error de sintaxis en el archivo");
+    refresh();
 }
 
 int main(void) {
     struct PCB *pcb = malloc(sizeof(struct PCB));//reservamos la estructura
+     FILE *n_archivo;
     
     
-    char comando[60] = {0};
-    int posicion_de_char = 0;
-    int recibe_valores = 0;
-    int nivel_de_prompt = 0;
+    char comando[60] = {0};//comando o cadena donde se leera lo escrito
+    int posicion_de_char = 0;//posicion de un char en la cadena (j)
+    int recibe_valores = 0;//recibe el retorno de atiende shell
+    int nivel_de_prompt = 0;//en que altura se escribe el prompt (y)
+    int bandera = 0;//para saber si el archivo se puede seguir leyendo con normalidad
+    int x=0;//recibe el retorno de leer archivo
     
     initscr();
     prints(&nivel_de_prompt, comando);
@@ -155,7 +164,35 @@ int main(void) {
     
     while (recibe_valores != 10) {
         recibe_valores = atiende_shell(comando, &posicion_de_char, &nivel_de_prompt);
-        mostrar_mensajes(recibe_valores, comando, &posicion_de_char, &nivel_de_prompt, pcb);
+        if(mostrar_mensajes(recibe_valores, comando, &posicion_de_char, &nivel_de_prompt)==205){//si mostrar mensajes retorna 205 abrimos el archivo e inicializamos las variables, ademas ponemos bandera en true
+            n_archivo = fopen(archivo, "r");
+            pcb->AX=0;
+            pcb->BX=0;
+            pcb->CX=0;
+            pcb->DX=0;
+            pcb->PC=0;
+            bandera=1;
+        }
+        if (bandera==1){//si bandera es 1 entonces podemos seguir leyendo el archivo
+
+            if (fgets(pcb->IR, sizeof(pcb->IR), n_archivo) != NULL){//leeemos la linea del archivo
+                x=leer_archivo(pcb);//ejecutamos funcion pasando la estructura
+                if(x==425){//manejo de errores
+                    fclose(n_archivo);
+                    bandera=0;
+                }else if(x==405){
+                    fclose(n_archivo);
+                    bandera=0;
+                    mostrar_error_de_archivo();
+                }
+                
+
+            }else{//si se llega al final del archivo lo cerramos y bandera False
+                fclose(n_archivo);
+                bandera=0;
+            }
+
+        }
     }
 
     endwin();
