@@ -176,7 +176,7 @@ int main(void) {
         if (bandera==1){//si bandera es 1 entonces podemos seguir leyendo el archivo
 
             if (fgets(pcb->IR, sizeof(pcb->IR), n_archivo) != NULL){//leeemos la linea del archivo
-                x=impresion_y_operaciones_PCB(pcb);//ejecutamos funcion pasando la estructura
+                x=impresionPCB(pcb);//ejecutamos funcion pasando la estructura
                 if(x==425){//manejo de errores
                     fclose(n_archivo);
                     bandera=0;
