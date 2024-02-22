@@ -503,7 +503,7 @@ int leer_archivo(struct PCB *pcb){
         mvprintw(15, 100, "DX: %d", pcb->DX);
 
 
-        usleep(300000); //espera para ver cada lectura del archivo
+        usleep(500000); //espera para ver cada lectura del archivo
         error = validar_operaciones(pcb);
         if (error == 405){//error de sintaxis en el archivo
              
