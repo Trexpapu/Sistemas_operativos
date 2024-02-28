@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <ctype.h> // Para la función toupper
 #include <stdlib.h>
-
 struct PCB
 {
     char IR[100];
@@ -14,6 +13,10 @@ struct PCB
     int CX;
     int DX;
     int PC;
+    int PID;
+    char fileName[256];
+    FILE *programa; //puntero a un archivo
+    struct PCB *sig; //siguiente estructura o nodo
 };
 
 void librerar_recursos(struct PCB *pcb) {
@@ -340,6 +343,10 @@ int validar_operador(char *operador){
             return 40;
         }else if (strcmp(operador, "DIV") == 0){
             return 50;
+        }else if(strcmp(operador, "INC") == 0){
+            return 700;
+        }else if(strcmp(operador, "DEC") == 0){
+            return 800;
         }else{
             return 60;
         }
@@ -413,13 +420,13 @@ void realizar_inc_o_dec(int opcion, int registro, struct PCB *pcb){
     }
 }
 
-int validar_operaciones(struct PCB *pcb) {
+int validar_operaciones_de_archivo(struct PCB *pcb) {
     char operacion[10];
     char p1[10];
     char p2[20];
     char error[20];
     int registro=0;//registro
-    int operador_3=0;//operador cuando se trata de mov, div, mul, add
+    int operador=0;//operador cuando se trata de mov, div, mul, add
     int valor_p2 = 0;//registro o numerico
 
 
@@ -428,96 +435,127 @@ int validar_operaciones(struct PCB *pcb) {
         toUPPER(operacion);
         toUPPER(p1);
         toUPPER(p2);
-        operador_3=validar_operador(operacion);//validamos la primera parte como mov, div...
-        registro=validar_registro(p1);//validamos p1, es decir que sea un registro
+
+        operador = validar_operador(operacion);//validamos la primera parte como mov, div...
+        registro = validar_registro(p1);//validamos p1, es decir que sea un registro
         valor_p2 = validar_p2(p2);//validamos que p2 sea un registro o numero
 
-        if (operador_3==60){
-            return 405;
+
+        //manejo de errores al validar las operaciones
+        if(operador==700 || operador==800){
+            return 501;//operacion de 2 con demasiados parametros
+        }
+
+        if (operador==60){
+            return 401;// OPERACION DE 3 NO VALIDA, MUL, ADD, SUB, DIV, MOV
         }
         if (registro==50){
-            return 405;
+            return 402;//P1 REGISTRO NO RECONOCIDO
         }
         if (valor_p2==9999999){
-            return 405;
+            return 403;//NO ES REGISTRO NI NUMERO, P2 NO RECONOCIDO
         }
-        if (operador_3==50 && valor_p2==0){//si la operaciones dividir y p2 es un cero
-            return 405;
+        if (operador==50 && valor_p2==0){//si la operaciones dividir y p2 es un cero
+            return 404;//DIVISION ENTRE CERO
         }
-        realizar_operaciones(operador_3, registro, valor_p2, pcb);
+        if (operador == 50){
+            if(valor_p2 == 1000000){//division entre un registro que vale cero
+                if(pcb->AX == 0){
+                    return 404;//DIVISION ENTRE CERO
+                }
+            }else if(valor_p2 == 2000000){
+                if(pcb->BX == 0){
+                    return 404;//DIVISION ENTRE CERO
+                }
+            }else if(valor_p2 == 300000){
+                if(pcb->CX == 0){
+                    return 404;//DIVISION ENTRE CERO
+                }
+            }else if(valor_p2 == 400000){
+                if(pcb->DX == 0){
+                    return 404;//DIVISION ENTRE CERO
+                }
+            }
+        }
+
+        realizar_operaciones(operador, registro, valor_p2, pcb); //REALIZAMOS OPERACIONES
         
     }else if(sscanf(pcb->IR, "%s %s %s %s", operacion, p1, p2, error) == 2){//si es inc o dec
         toUPPER(operacion);
         toUPPER(p1);
-        if (strcmp(operacion, "INC")==0){//si es inc
+        operador = validar_operador(operacion);
+
+        if (operador==700){//si es inc
             registro=validar_registro(p1);//obtenemos a cual registro
             if (registro==50){
-                return 405;
+                return 402;//P1 REGISTRO NO RECONOCIDO
             }
             realizar_inc_o_dec(1, registro, pcb);//realizamos operaciones, 1 es para INC
 
-        }else if(strcmp(operacion, "DEC")==0){//si es dec
+        }else if(operador==800){//si es dec
             registro=validar_registro(p1);//obtenemos cual registro
             if (registro==50){
-                return 405;
+                return 402;//P1 REGISTRO NO RECONOCIDO
             }
+
             realizar_inc_o_dec(2, registro, pcb);//realizamos operaciones, 2 es para DEC
 
+        }else if(operador==10 || operador == 20 || operador == 30 || operador == 40){
+            return 502;//OPERACION de 3 con falta de parametros
+
         }else{
-            return 405;
+            return 401;//OPERACION DE DOS NO VALIDA, NO ES INC NI DEC
         }
+
     }else if(sscanf(pcb->IR, "%s %s %s %s", operacion, p1, p2, error) == 1){
         toUPPER(operacion);
         if(strcmp(operacion, "END")==0){
-            return 425;
+            return 405;//SE ENCONTRO LA PALABRA END
+        }else{
+            operador = validar_operador(operacion);
+            if(operador==10 || operador == 20 || operador == 30 || operador == 40 || operador == 700 || operador == 800){
+                return 503; //operador con falta de parametros 
+            }
         }
     }else{
-        return 405;
+        return 406;//ERROR DE SINTAXIS LA LINEA TIENE instrucciones demasiado largas
     }
 
     return 0;
 }
 
-int impresionPCB(struct PCB *pcb){
+void impresionPCB(struct PCB *pcb){
     
-    int error = 0;
-    // Lee y muestra cada línea del archivo
 
-        mvprintw(25, 100, "IR                                                                       ");
+        mvprintw(25, 100, "IR              ");
         mvprintw(25, 100, "IR: %s", pcb->IR);//imprimimos el IR, cada linea de archivo
 
         pcb->PC++;
         mvprintw(20, 100, "PC:         ");
         mvprintw(20, 100, "PC: %d", pcb->PC);//imprimimos el PC, contador de las lineas de archivo
 
-        mvprintw(0, 100, "AX:                                                                       ");
+        mvprintw(0, 100, "AX:                ");
         mvprintw(0, 100, "AX: %d", pcb->AX);
 
-        mvprintw(5, 100, "BX:                                                                       ");
+        mvprintw(5, 100, "BX:               ");
         mvprintw(5, 100, "BX: %d", pcb->BX);
 
-        mvprintw(10, 100, "CX:                                                                       ");
+        mvprintw(10, 100, "CX:               ");
         mvprintw(10, 100, "CX: %d", pcb->CX);
 
-        mvprintw(15, 100, "DX:                                                                       ");
+        mvprintw(15, 100, "DX:              ");
         mvprintw(15, 100, "DX: %d", pcb->DX);
+
+        mvprintw(20, 130, "PID:               ");
+        mvprintw(20, 130, "PID: %d", pcb->PID);
+
+        mvprintw(25, 130, "FileName:                                ");
+        mvprintw(25, 130, "FileName: %s", pcb->fileName);
 
 
         usleep(500000); //espera para ver cada lectura del archivo
-        error = validar_operaciones(pcb);
-        if (error == 405){//error de sintaxis en el archivo       
-            return error;
-
-        }else if(error == 425){//cuando se encuentra la palabra END en el archivo
-
-            return error;
-        }
-    
-
     
     refresh();
-    return 0;
-
 }
 
 int verificar_archivo(char archivo[100]){
@@ -534,12 +572,21 @@ int verificar_archivo(char archivo[100]){
 }
 
 void prints_procesador(){
-    mvprintw(0, 100, "AX: %d", 0);
-    mvprintw(5, 100, "BX: %d", 0);
-    mvprintw(10, 100, "CX: %d", 0);
-    mvprintw(15, 100, "DX: %d", 0);
-    mvprintw(20, 100, "PC: %d", 0);
-    mvprintw(25, 100, "IR:");
-    mvprintw(0,0,"");
+        mvprintw(25, 100, "IR              ");
+
+        mvprintw(20, 100, "PC:         ");
+
+        mvprintw(0, 100, "AX:                ");
+
+        mvprintw(5, 100, "BX:               ");
+
+        mvprintw(10, 100, "CX:               ");
+
+        mvprintw(15, 100, "DX:              ");
+
+        mvprintw(20, 130, "PID:               ");
+
+        mvprintw(25, 130, "FileName:                                ");
+        mvprintw(0,0,"");
     refresh();
 }
