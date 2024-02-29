@@ -6,7 +6,7 @@
 #include <ctype.h> // Para la función toupper
 #include <stdlib.h>
 
-int P_count = 0;
+int P_count = 1;
 
 struct PCB* pull(struct PCB **cabeza, int *pid, char *file_Name) {
     // Verifica si la lista está vacía
@@ -27,6 +27,21 @@ struct PCB* pull(struct PCB **cabeza, int *pid, char *file_Name) {
     return primerNodo;
 }
 
+void liberar_lista(struct PCB **cabeza) {
+    struct PCB *actual = *cabeza;
+    struct PCB *temp;
+
+    while (actual != NULL) {
+        temp = actual; // Guarda una referencia al nodo actual
+        actual = actual->sig; // Avanza al siguiente nodo
+        free(temp); // Libera la memoria del nodo actual
+    }
+
+    // Establece la cabeza de la lista como NULL
+    *cabeza = NULL;
+}
+
+
 
 
 
@@ -41,6 +56,8 @@ void INSERT(struct PCB **cabeza, char *nombrePrograma) {
     nuevoNodo->DX = 0;
     nuevoNodo->PC = 0;
     strcpy(nuevoNodo->fileName, nombrePrograma);
+    strcpy(nuevoNodo->IR, "    ");
+    nuevoNodo->programa = fopen(nuevoNodo->fileName, "r");
     nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
     // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
@@ -60,7 +77,7 @@ void INSERT(struct PCB **cabeza, char *nombrePrograma) {
 }
 
 
-void insertar_final(struct PCB **cabeza, char *nombrePrograma, int pid) {
+void push(struct PCB **cabeza, char *nombrePrograma, int pid) {
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
     nuevoNodo->PID = pid;
@@ -70,6 +87,8 @@ void insertar_final(struct PCB **cabeza, char *nombrePrograma, int pid) {
     nuevoNodo->DX = 0;
     nuevoNodo->PC = 0;
     strcpy(nuevoNodo->fileName, nombrePrograma);
+    strcpy(nuevoNodo->IR, "    ");
+    nuevoNodo->programa = fopen(nuevoNodo->fileName, "r");
     nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
     // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
@@ -89,20 +108,45 @@ void insertar_final(struct PCB **cabeza, char *nombrePrograma, int pid) {
 }
 
 
-void REINSERT(struct PCB **cabeza, char *nombrePrograma, int pid) {
-     // Crear un nuevo nodo de PCB
-    struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
-    nuevoNodo->PID = pid;
-    nuevoNodo->AX = 0;
-    nuevoNodo->BX = 0;
-    nuevoNodo->CX = 0;
-    nuevoNodo->DX = 0;
-    nuevoNodo->PC = 0;
-    strcpy(nuevoNodo->fileName, nombrePrograma);
 
-    nuevoNodo->sig = *cabeza; // El siguiente nodo es la cabeza actual de la lista
-    *cabeza = nuevoNodo; // El nuevo nodo se convierte en la nueva cabeza de la lista
+int kill(struct PCB **cabeza, int pid) {
+    // Verifica si la lista está vacía
+    if (*cabeza == NULL) {
+        return 1;
+    }
+
+    // Si el nodo a eliminar es el primer nodo
+    if ((*cabeza)->PID == pid) {
+        struct PCB *temp = *cabeza; // Guarda referencia al nodo a eliminar
+        *cabeza = (*cabeza)->sig; // Avanza la cabeza al siguiente nodo
+        free(temp); // Libera la memoria del nodo eliminado
+        return 0;
+    }
+
+    // Busca el nodo con el PID dado
+    struct PCB *actual = *cabeza;
+    struct PCB *anterior = NULL;
+
+    while (actual != NULL && actual->PID != pid) {
+        anterior = actual;
+        actual = actual->sig;
+    }
+
+    // Si se encontró el nodo con el PID dado
+    if (actual != NULL) {
+        anterior->sig = actual->sig; // Elimina el nodo ajustando los enlaces
+        free(actual); // Libera la memoria del nodo eliminado
+        
+    } else {
+        return -1;
+    }
+
+    return 0;
 }
+
+
+
+
 
 
 
