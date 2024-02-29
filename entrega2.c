@@ -10,7 +10,7 @@
 
 
 char archivo[200];//variable global de archivo
-
+char numero_de_kill[200];
 
 int validar_comandos(char *comando){
     char accion[100];
@@ -45,6 +45,15 @@ int validar_comandos(char *comando){
                     }else if(strcmp(accion, "push") == 0){
                         return 782;//PPUSH NO NECESITA PARAMETROS
 
+                    }else if(strcmp(accion, "kill") == 0){
+                        strcpy(numero_de_kill, archivo); // Copiar archivo a numero_de_kill
+
+                        if(atoi(numero_de_kill)){
+                            return 237; // si se puede ejecutar el comando kill
+                        }else{
+                            return 437; //atoi necesita un numero entero
+                        }
+
                     }else{
                         return 400;//printf("comando no reconocido\n");
                     }
@@ -63,6 +72,9 @@ int validar_comandos(char *comando){
                         
                     }else if(strcmp(accion, "push") == 0){
                         return 226;//PUSH correcto
+
+                    }else if(strcmp(accion, "kill") == 0){
+                        return 437;
 
                     }else{
                         return 400;// printf("comando no reconocido\n");
@@ -156,6 +168,15 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 return 226;
                 break;
+            case 237:
+                mvprintw(40, 10, "                                                                                                               ");
+                mvprintw(40, 10, "Comando ejecutado exitosamente");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                return 237;
+                break;
+            
 
 
             case 300: //podemos cargar el archivo en la lista
@@ -191,6 +212,13 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
+            case 437:
+                mvprintw(40, 10, "                                                                                                               ");
+                mvprintw(40, 10, "Error kill necesita un numero como parametro...");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                break;
 
             case 400:
                 mvprintw(40, 10, "                                                                                                               ");
@@ -207,6 +235,7 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
+
             case 782:
                 mvprintw(40, 10, "                                                                                                               ");
                 mvprintw(40, 10, "Error push no necesita parametros...");
@@ -214,6 +243,9 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
+
+            
+
 
                 
         }
@@ -314,6 +346,15 @@ void mostrar_errores_de_ejecucion(int opcion){
         mvprintw(40, 10, "                                                                                                               ");
         mvprintw(40, 10, "Error no hay ningun programa cargado");
         break;
+    case 4:
+        mvprintw(40, 10, "                                                                                                               ");
+        mvprintw(40, 10, "Error no existe un proceso con ese PID");
+        break;
+    case 5:
+        mvprintw(40, 10, "                                                                                                               ");
+        mvprintw(40, 10, "Error ya hay un programa cargado en proceso");
+        break;
+
     }
     
     refresh();            
@@ -321,6 +362,7 @@ void mostrar_errores_de_ejecucion(int opcion){
 }
 int main(void) {
     struct PCB *cabeza = NULL; // Inicializar la lista como vacía
+    struct PCB* nodo_extraido = NULL;
     //struct PCB *pull_struct = malloc(sizeof(struct PCB));//reservamos la estructura
     struct PCB *pcb = malloc(sizeof(struct PCB));//reservamos la estructura
     FILE *n_archivo;
@@ -335,6 +377,7 @@ int main(void) {
     int programa_cargado = 0;
     int pid=0;
     char filename[256];
+    int retorno = 0;
     
     
     initscr();
@@ -360,7 +403,7 @@ int main(void) {
 
                 if (programa_cargado==0){
                     
-                    struct PCB* nodo_extraido = pull(&cabeza, &pid, filename);
+                    nodo_extraido = pull(&cabeza, &pid, filename);
                     if(nodo_extraido == NULL){
                         mostrar_errores_de_ejecucion(1);
                     }else{
@@ -368,10 +411,8 @@ int main(void) {
                         impresionPCB(nodo_extraido);
                         programa_cargado = 1;
                     }
-                }else {
-                  // programa_cargado = 0;
-                    // Reinsertar el nodo extraído de vuelta a la lista
-                   // REINSERT(&cabeza, filename, pid);////TENGO DUDAS HACER PULL O REINSERT PRIMERO               
+                }else{//no se puede ejecutar pull porque ya hay un proceso cargado en procesador
+                    mostrar_errores_de_ejecucion(5);
                 }
                     
             }else{
@@ -379,7 +420,7 @@ int main(void) {
             }
         }else if(ejecucion_a_comandos == 226){//se puede ejecutar el push
             if(programa_cargado == 1){//quiere decir que ya se uso pull una vez anteriormente
-                insertar_final(&cabeza, filename, pid);  
+                push(&cabeza, filename, pid);  
                 prints_procesador();
                 imprimirLista(cabeza);
                 programa_cargado = 0;
@@ -389,6 +430,16 @@ int main(void) {
             }
         
         
+        }else if(ejecucion_a_comandos == 237){
+            retorno = kill(&cabeza, atoi(numero_de_kill));
+            imprimirLista(cabeza);
+            if (retorno == 1){//es null, no hay valores en al lista
+                mostrar_errores_de_ejecucion(1);
+            
+            }else if(retorno == -1){//numero_de_kill no existe
+                mostrar_errores_de_ejecucion(4);
+            }
+            
         }
 
 
@@ -399,5 +450,6 @@ int main(void) {
 
     endwin();
     librerar_recursos(pcb);//liberamos recursos
+    liberar_lista(&cabeza);//liberamos lista
     return 0;
 }
