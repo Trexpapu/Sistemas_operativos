@@ -12,6 +12,7 @@
 char archivo[200];//variable global de archivo
 char numero_de_kill[200];
 
+
 int validar_comandos(char *comando){
     char accion[100];
     //verificar que esta bien el comando LOAD FILE
@@ -27,23 +28,6 @@ int validar_comandos(char *comando){
                             //printf("No existe el archivo ingresado\n");
                             return 405;
                          }
-
-                    }else if(strcmp(accion, "insert") == 0){
-                        if (access(archivo, F_OK) != -1){
-                           //retornamos 300 es decir si existe el archivo y podemos cargarlo en la lista
-                            return 300;
-                            
-                         }else{
-                            //printf("No existe el archivo ingresado\n");
-                            return 405;
-                         }
-                        
-                        
-                    }else if(strcmp(accion, "pull") == 0){
-                        return 732;//PULL no necesita parametros
-
-                    }else if(strcmp(accion, "push") == 0){
-                        return 782;//PPUSH NO NECESITA PARAMETROS
 
                     }else if(strcmp(accion, "kill") == 0){
                         strcpy(numero_de_kill, archivo); // Copiar archivo a numero_de_kill
@@ -64,17 +48,8 @@ int validar_comandos(char *comando){
                         return 410;
                     }else if(strcmp(accion, "exit") == 0){
                         return 10;
-                    }else if(strcmp(accion, "insert") == 0){
-                        return 420;//insert necesita un archivo
-                
-                    }else if(strcmp(accion, "pull") == 0){
-                        return 225;//comando de pull correcto
-                        
-                    }else if(strcmp(accion, "push") == 0){
-                        return 226;//PUSH correcto
-
                     }else if(strcmp(accion, "kill") == 0){
-                        return 437;
+                        return 437;//kill necesita un numero entero como parametro
 
                     }else{
                         return 400;// printf("comando no reconocido\n");
@@ -90,6 +65,7 @@ int validar_comandos(char *comando){
 
 int atiende_shell(char *comando, int *j, int *y) {
     if (kbhit()) { // Comprobar si se presionó una tecla
+        
         comando[*j] = getch(); // Almacenar la tecla en el comando
         
         if (comando[*j] == '\n') {//verificar si la tecla fue enter
@@ -98,7 +74,7 @@ int atiende_shell(char *comando, int *j, int *y) {
             return validar_comandos(comando);
             
             
-        }else {
+        }else{
             (*j)++;
         }
 
@@ -123,7 +99,7 @@ int atiende_shell(char *comando, int *j, int *y) {
 void prints(int *y, char *comando){
     for (int i = 0; i < 300; i++) {
         mvprintw(30, i, "*");
-        mvprintw(i, 90, "*");
+        mvprintw(i, 80, "*");
     }
     mvprintw(*y, 0, "PROMPT > %s", comando);
     refresh();
@@ -131,19 +107,19 @@ void prints(int *y, char *comando){
 
 int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
     int error_de_archivo=0;
+    int ejey = 40;
+    int ejex = 5;
     switch (opcion) {
 
             case 200:
-
-
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "Comando ejecutado exitosamente");
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Comando ejecutado exitosamente");
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 error_de_archivo=verificar_archivo(archivo);//verficamos el archivo
                 if (error_de_archivo==800){//si el archivo se puede abrir correctamente
-                    mvprintw(40, 10, "                                                                                                               ");
-                    mvprintw(40, 10, "Error al abrir el archivo");
+                    mvprintw(ejey, ejex, "                                                                                                               ");
+                    mvprintw(ejey, ejex, "Error al abrir el archivo");
                 }else{//si no regresa 800
                     mvprintw((*y), 0, "PROMPT > %s", comando);
                     return 200;//se puede leer el archivo
@@ -151,159 +127,133 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
 
-            case 225://podemos ejecutar el pull
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "Comando ejecutado exitosamente");
-                memset(comando, 0, (*j));
-                (*j) = 0;
-                mvprintw((*y), 0, "PROMPT > %s", comando);
-                return 255;
-                break;
-
-            case 226:
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "Comando ejecutado exitosamente");
-                memset(comando, 0, (*j));
-                (*j) = 0;
-                mvprintw((*y), 0, "PROMPT > %s", comando);
-                return 226;
-                break;
-            case 237:
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "Comando ejecutado exitosamente");
+            case 237: //se puede ejecutar el kill
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Comando ejecutado exitosamente");
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 return 237;
                 break;
-            
-
-
-            case 300: //podemos cargar el archivo en la lista
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "Comando ejecutado exitosamente");
-                memset(comando, 0, (*j));
-                (*j) = 0;
-                mvprintw((*y), 0, "PROMPT > %s", comando);
-                return 300; //indicando que se puede agregar un nodo al inicio de la lista
-                break;
 
                 
             case 405:
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "No existe el archivo ingresado");
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "No existe el archivo ingresado");
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
 
             case 410:
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "Error load necesita como parametro un archivo... Ejemplo: load file.txt");
-                memset(comando, 0, (*j));
-                (*j) = 0;
-                mvprintw((*y), 0, "PROMPT > %s", comando);
-                break;
-
-            case 420:
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "Error insert necesita como parametro un archivo");
-                memset(comando, 0, (*j));
-                (*j) = 0;
-                mvprintw((*y), 0, "PROMPT > %s", comando);
-                break;
-            case 437:
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "Error kill necesita un numero como parametro...");
-                memset(comando, 0, (*j));
-                (*j) = 0;
-                mvprintw((*y), 0, "PROMPT > %s", comando);
-                break;
-
-            case 400:
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "Comando invalido");
-                memset(comando, 0, (*j));
-                (*j) = 0;
-                mvprintw((*y), 0, "PROMPT > %s", comando);
-                break;
-
-            case 732:
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "Error pull no necesita parametros...");
-                memset(comando, 0, (*j));
-                (*j) = 0;
-                mvprintw((*y), 0, "PROMPT > %s", comando);
-                break;
-
-            case 782:
-                mvprintw(40, 10, "                                                                                                               ");
-                mvprintw(40, 10, "Error push no necesita parametros...");
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Error load necesita como parametro un archivo... Ejemplo: load file.txt");
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
 
             
+            case 437:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Error kill necesita un numero como parametro...");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                break;
 
+            case 400:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Comando invalido");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                break;
 
-                
         }
+
         refresh();
     return 0;
 }
 
-void mostrar_errores_de_archivo(struct PCB *pcb, int opcion){
+void mostrar_errores_de_archivo(char linea[100], int opcion){
     char operacion[60];
     char p1[60];
     char p2[60];
     char error[60];
-    sscanf(pcb->IR, "%s %s %s %s", operacion, p1, p2, error);
+    int ejey = 40;
+    int ejex = 5;
+    sscanf(linea, "%s %s %s %s", operacion, p1, p2, error);
     switch(opcion){
+        case 99:
+            mvprintw(ejey, ejex, " ejey                                                                                                              ");
+            mvprintw(ejey, ejex, "Se llego al final del archivo");
+            break;
         case 401:
-            mvprintw(40, 10, "                                                                                                               ");
-            mvprintw(40, 10, "Error %s no es una operacion reconocida", operacion);
+            mvprintw(ejey, ejex, "                                                                                                               ");
+            mvprintw(ejey, ejex, "Error %s no es una operacion reconocida", operacion);
             break;
         case 402:
-            mvprintw(40, 10, "                                                                                                               ");
-            mvprintw(40, 10, "Error %s no es un registro reconocido", p1);
+            mvprintw(ejey, ejex, "                                                                                                               ");
+            mvprintw(ejey, ejex, "Error %s no es un registro reconocido", p1);
             break;
         case 403:
-            mvprintw(40, 10, "                                                                                                               ");
-            mvprintw(40, 10, "Error %s no es un registro o un numero", p2);
+            mvprintw(ejey, ejex, "                                                                                                               ");
+            mvprintw(ejey, ejex, "Error %s no es un registro o un numero", p2);
             break;
         case 404:
-            mvprintw(40, 10, "                                                                                                               ");
-            mvprintw(40, 10, "Error no es posible dividir entre (%s) porque es 0", p2);
+            mvprintw(ejey, ejex, "                                                                                                               ");
+            mvprintw(ejey, ejex, "Error no es posible dividir porque p2 tiene un valor de %s", p2);
             break;
         case 405:
-            mvprintw(40, 10, "                                                                                                               ");
-            mvprintw(40, 10, "Se acaba de leer END indicando fin de programa");
+            mvprintw(ejey, ejex, "                                                                                                               ");
+            mvprintw(ejey, ejex, "Se acaba de leer END indicando fin de programa");
             break;
         case 406:
-            mvprintw(40, 10, "                                                                                                               ");
-            mvprintw(40, 10, "Error la instruccion contiene demasiados elementos %s", error);
+            mvprintw(ejey, ejex, "                                                                                                               ");
+            mvprintw(ejey, ejex, "Error la instruccion contiene demasiados elementos %s", error);
             break;
         case 501:
-            mvprintw(40, 10, "                                                                                                               ");
-            mvprintw(40, 10, "Error %s solo necesita un registro como parametro ", operacion);
+            mvprintw(ejey, ejex, "                                                                                                               ");
+            mvprintw(ejey, ejex, "Error %s solo necesita un registro como parametro ", operacion);
             break;
         case 502:
-            mvprintw(40, 10, "                                                                                                               ");
-            mvprintw(40, 10, "Error %s necesita dos parametros p1: registro, p2: registro o numero", operacion);
+            mvprintw(ejey, ejex, "                                                                                                               ");
+            mvprintw(ejey, ejex, "Error %s necesita dos parametros p1: registro, p2: registro o numero", operacion);
             break;
         case 503:
-            mvprintw(40, 10, "                                                                                                               ");
-            mvprintw(40, 10, "Error %s necesita mas parametros ", operacion);
+            mvprintw(ejey, ejex, "                                                                                                               ");
+            mvprintw(ejey, ejex, "Error %s necesita mas parametros ", operacion);
             break;
     }refresh();
 
     
 }
 
+void mostrar_errores_de_ejecucion(int opcion){
+    int ejey = 40;
+    int ejex = 5;
+    switch (opcion)
+    {
+    
+    case 1:
+        mvprintw(ejey, ejex, "                                                                                                               ");
+        mvprintw(ejey, ejex, "Error no existe un proceso con ese PID");
+        break;
+    case 2:
+        mvprintw(ejey, ejex, "                                                                                                               ");
+        mvprintw(ejey, ejex, "Se elimino el proceso que estaba en ejecucion");
+        break;
+    
+
+    }
+    
+    refresh();            
+
+}
+
 int leer_lineas(struct PCB *pcb, int *bandera, FILE *n_archivo){
-    strcpy(pcb->fileName, archivo);
-    int x=0;//recibe el retorno de leer archivo
+    int x=0;//recibe el retorno de operacciones de archivo
      if (fgets(pcb->IR, sizeof(pcb->IR), n_archivo) != NULL){//leeemos la linea del archivo
                 impresionPCB(pcb);
                 x=validar_operaciones_de_archivo(pcb);//ejecutamos funcion pasando la estructura
@@ -311,61 +261,63 @@ int leer_lineas(struct PCB *pcb, int *bandera, FILE *n_archivo){
                 if(x!=0){//manejo de errores
                     fclose(n_archivo);
                     (*bandera)=0;
-                    mostrar_errores_de_archivo(pcb, x);
+                    mostrar_errores_de_archivo(pcb->IR, x);
                 }
+
             }else{//si se llega al final del archivo lo cerramos y (*bandera) False
                 fclose(n_archivo);
                 (*bandera)=0;
+                mostrar_errores_de_archivo(pcb->IR, 99);
             }
     return 0;
 }
 
 
-void reiniciar_valores_de_struct(struct PCB *pcb){
-            strcpy(pcb->fileName, "                ");
-            pcb->AX=0;
-            pcb->BX=0;
-            pcb->CX=0;
-            pcb->DX=0;
-            pcb->PC=0;
-
-}
-
-void mostrar_errores_de_ejecucion(int opcion){
-    switch (opcion)
-    {
-    case 1:
-        mvprintw(40, 10, "                                                                                                               ");
-        mvprintw(40, 10, "Error la lista esta vacia");
-        break;
-    case 2:
-        mvprintw(40, 10, "                                                                                                               ");
-        mvprintw(40, 10, "Error no se puede ejecutar pull mientras hay un programa en ejecucion");
-        break;
-    case 3:
-        mvprintw(40, 10, "                                                                                                               ");
-        mvprintw(40, 10, "Error no hay ningun programa cargado");
-        break;
-    case 4:
-        mvprintw(40, 10, "                                                                                                               ");
-        mvprintw(40, 10, "Error no existe un proceso con ese PID");
-        break;
-    case 5:
-        mvprintw(40, 10, "                                                                                                               ");
-        mvprintw(40, 10, "Error ya hay un programa cargado en proceso");
-        break;
-
+void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB **ejecucion, int *bandera, int *programa_cargado, int ejecucion_a_comandos, char archivo_valido[200], int retorno_kill) {
+    if (ejecucion_a_comandos == 200) {
+        strcpy(archivo_valido, archivo);
+        insert(listos, archivo_valido);
+    } else if (ejecucion_a_comandos == 237) {
+        retorno_kill = kill(listos, atoi(numero_de_kill));
+        if (retorno_kill != 0) {
+            retorno_kill = kill(ejecucion, atoi(numero_de_kill));
+            if (retorno_kill != 0) {
+                retorno_kill = kill(terminados, atoi(numero_de_kill));
+                if (retorno_kill != 0) {
+                    mostrar_errores_de_ejecucion(1);
+                }
+            } else {
+                *bandera = 0;
+                *programa_cargado = 0;
+                mostrar_errores_de_ejecucion(2);
+            }
+        }
     }
-    
-    refresh();            
 
+    if (*programa_cargado == 0) {
+        *ejecucion = pull(listos);
+        if (*ejecucion != NULL) {
+            impresionPCB(*ejecucion);
+            *programa_cargado = 1;
+            *bandera = 1;
+        }
+    }
+
+    if (*programa_cargado == 1) {
+        if (*bandera == 0) {
+            push(terminados, *ejecucion);
+            *programa_cargado = 0;
+        }
+    }
 }
+
+
+
 int main(void) {
-    struct PCB *cabeza = NULL; // Inicializar la lista como vacía
-    struct PCB* nodo_extraido = NULL;
-    //struct PCB *pull_struct = malloc(sizeof(struct PCB));//reservamos la estructura
-    struct PCB *pcb = malloc(sizeof(struct PCB));//reservamos la estructura
-    FILE *n_archivo;
+    struct PCB *listos = NULL; // Lista de nodos en espera por ser ejecutados
+    struct PCB *terminados = NULL; //lista de nodos terminados
+    struct PCB *ejecucion = malloc(sizeof(struct PCB));//nodo unico en ejecucion
+    int quantum = 0;
     
     
     char comando[60] = {0};//comando o cadena donde se leera lo escrito
@@ -373,83 +325,42 @@ int main(void) {
     int recibe_valores = 0;//recibe el retorno de atiende shell
     int nivel_de_prompt = 0;//en que altura se escribe el prompt (y)
     int bandera = 0;//para saber si el archivo se puede seguir leyendo con normalidad
-    int ejecucion_a_comandos = 0;
-    int programa_cargado = 0;
-    int pid=0;
-    char filename[256];
-    int retorno = 0;
+    int ejecucion_a_comandos = 0;//variable que recibe valores del retorno mostrar_respuesta_a_comandos
+    int programa_cargado = 0;//variable de control para realizar pull y push
+    int retorno_kill = 0;//este sirve para  recibir el valor retornado por kill
+    char archivo_valido[200];//variable que recibe valores de la variable global archivo
+
     
     
     initscr();
     prints(&nivel_de_prompt, comando);
     prints_procesador();
+    prints_titulos();
     
     while (recibe_valores != 10) {
 
         recibe_valores = atiende_shell(comando, &posicion_de_char, &nivel_de_prompt);
         ejecucion_a_comandos = mostrar_respuesta_a_comandos(recibe_valores, comando, &posicion_de_char, &nivel_de_prompt);
 
-        if(ejecucion_a_comandos == 200){//si mostrar mensajes retorna 205 abrimos el archivo e inicializamos las variables, ademas ponemos bandera en true
-            n_archivo = fopen(archivo, "r");
-            reiniciar_valores_de_struct(pcb);
-            bandera=1;
+        imprimir_ejecion(ejecucion, 140, 3);
+        imprimir_listos(listos, 82, 35);
+        imprimir_terminados(terminados, 124, 35);
 
-        }else if(ejecucion_a_comandos == 300){//se ejecuta el insert
-            INSERT(&cabeza, archivo);
-            imprimirLista(cabeza);
-
-        }else if(ejecucion_a_comandos == 255){//se ejecuta el pull
-            if(bandera == 0){
-
-                if (programa_cargado==0){
-                    
-                    nodo_extraido = pull(&cabeza, &pid, filename);
-                    if(nodo_extraido == NULL){
-                        mostrar_errores_de_ejecucion(1);
-                    }else{
-                        imprimirLista(cabeza);
-                        impresionPCB(nodo_extraido);
-                        programa_cargado = 1;
-                    }
-                }else{//no se puede ejecutar pull porque ya hay un proceso cargado en procesador
-                    mostrar_errores_de_ejecucion(5);
-                }
-                    
-            }else{
-                mostrar_errores_de_ejecucion(2);
-            }
-        }else if(ejecucion_a_comandos == 226){//se puede ejecutar el push
-            if(programa_cargado == 1){//quiere decir que ya se uso pull una vez anteriormente
-                push(&cabeza, filename, pid);  
-                prints_procesador();
-                imprimirLista(cabeza);
-                programa_cargado = 0;
-
-            }else{
-                mostrar_errores_de_ejecucion(3);
-            }
-        
-        
-        }else if(ejecucion_a_comandos == 237){
-            retorno = kill(&cabeza, atoi(numero_de_kill));
-            imprimirLista(cabeza);
-            if (retorno == 1){//es null, no hay valores en al lista
-                mostrar_errores_de_ejecucion(1);
-            
-            }else if(retorno == -1){//numero_de_kill no existe
-                mostrar_errores_de_ejecucion(4);
-            }
-            
-        }
-
+        manejar_procesos(&listos, &terminados, &ejecucion, &bandera, &programa_cargado, ejecucion_a_comandos, archivo_valido, retorno_kill);
 
         if (bandera==1){//si bandera es 1 entonces podemos seguir leyendo el archivo
-            leer_lineas(pcb, &bandera, n_archivo);
+            leer_lineas(ejecucion, &bandera, ejecucion->programa);
         }
+
+        
     }
 
     endwin();
-    librerar_recursos(pcb);//liberamos recursos
-    liberar_lista(&cabeza);//liberamos lista
+    printf("Antes de liberar recursos: ejecucion=%p, listos=%p, terminados=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados);
+    librerar_recursos(ejecucion);
+    liberar_listos(&listos);
+    liberar_lista_terminados(&terminados);
+    printf("Después de liberar recursos: ejecucion=%p, listos=%p, terminados=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados);
+
     return 0;
 }
