@@ -53,7 +53,35 @@ void liberar_lista_terminados(struct PCB **cabeza) {
     *cabeza = NULL;
 }
 
+void re_insert(struct PCB **cabeza, struct PCB *ejecucion) {
+    // Crear un nuevo nodo de PCB
+    struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+    nuevoNodo->PID = ejecucion->PID;
+    nuevoNodo->AX = ejecucion->AX;
+    nuevoNodo->BX = ejecucion->BX;
+    nuevoNodo->CX = ejecucion->CX;
+    nuevoNodo->DX = ejecucion->DX;
+    nuevoNodo->PC = ejecucion->PC;
+    strcpy(nuevoNodo->fileName, ejecucion->fileName);
+    strcpy(nuevoNodo->IR, ejecucion->IR);
+    nuevoNodo->programa = ejecucion->programa;
+    nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
+    // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
+    if (*cabeza == NULL) {
+        *cabeza = nuevoNodo;
+        return;
+    }
+
+    // Buscar el último nodo de la lista
+    struct PCB *ultimo = *cabeza;
+    while (ultimo->sig != NULL) {
+        ultimo = ultimo->sig;
+    }
+
+    // Enlazar el nuevo nodo después del último nodo
+    ultimo->sig = nuevoNodo;
+}
 
 
 
