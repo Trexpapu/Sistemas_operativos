@@ -530,7 +530,6 @@ void impresionPCB(struct PCB *pcb){
         mvprintw(25, 100, "IR              ");
         mvprintw(25, 100, "IR: %s", pcb->IR);//imprimimos el IR, cada linea de archivo
 
-        pcb->PC++;
         mvprintw(20, 100, "PC:         ");
         mvprintw(20, 100, "PC: %d", pcb->PC);//imprimimos el PC, contador de las lineas de archivo
 
