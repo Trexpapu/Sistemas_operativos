@@ -252,23 +252,35 @@ void mostrar_errores_de_ejecucion(int opcion){
 
 }
 
-int leer_lineas(struct PCB *pcb, int *bandera, FILE *n_archivo){
-    int x=0;//recibe el retorno de operacciones de archivo
-     if (fgets(pcb->IR, sizeof(pcb->IR), n_archivo) != NULL){//leeemos la linea del archivo
-                impresionPCB(pcb);
-                x=validar_operaciones_de_archivo(pcb);//ejecutamos funcion pasando la estructura
+int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quantum, int *programa_cargado, struct PCB **listos) {
+    int x = 0; // Recibe el retorno de operaciones de archivo
+    if (fgets((*ejecucion)->IR, sizeof((*ejecucion)->IR), n_archivo) != NULL) { // Leeemos la línea del archivo
+        
+        x = validar_operaciones_de_archivo(*ejecucion); // Ejecutamos función pasando la estructura
+        (*ejecucion)->PC ++;
+        (*quantum)++;
+        impresionPCB(*ejecucion);
+        if (x != 0) { // Manejo de errores
+            fclose(n_archivo);
+            (*bandera) = 0;
+            (*quantum) = 0;
+            mostrar_errores_de_archivo((*ejecucion)->IR, x);
+        }
 
-                if(x!=0){//manejo de errores
-                    fclose(n_archivo);
-                    (*bandera)=0;
-                    mostrar_errores_de_archivo(pcb->IR, x);
-                }
-
-            }else{//si se llega al final del archivo lo cerramos y (*bandera) False
-                fclose(n_archivo);
-                (*bandera)=0;
-                mostrar_errores_de_archivo(pcb->IR, 99);
-            }
+    } else { // Si se llega al final del archivo lo cerramos y (*bandera) False
+        fclose(n_archivo);
+        (*bandera) = 0;
+        (*quantum) = 0;
+        mostrar_errores_de_archivo((*ejecucion)->IR, 99);
+    }
+    
+    if ((*quantum) >= 15) {//si se llego al limite de lineas leidas por archivo reinstarmos al final de la lista listos
+        (*bandera) = 0;
+        (*programa_cargado) = 0;
+        re_insert(listos, *ejecucion);
+        kill(ejecucion, (*ejecucion)->PID);
+        (*quantum) = 0;
+    }
     return 0;
 }
 
@@ -277,7 +289,9 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
     if (ejecucion_a_comandos == 200) {
         strcpy(archivo_valido, archivo);
         insert(listos, archivo_valido);
+
     } else if (ejecucion_a_comandos == 237) {
+
         retorno_kill = kill(listos, atoi(numero_de_kill));
         if (retorno_kill != 0) {
             retorno_kill = kill(ejecucion, atoi(numero_de_kill));
@@ -349,11 +363,8 @@ int main(void) {
         manejar_procesos(&listos, &terminados, &ejecucion, &bandera, &programa_cargado, ejecucion_a_comandos, archivo_valido, retorno_kill);
 
         if (bandera==1){//si bandera es 1 entonces podemos seguir leyendo el archivo
-            leer_lineas(ejecucion, &bandera, ejecucion->programa);
+            leer_lineas(&ejecucion, &bandera, ejecucion->programa, &quantum, &programa_cargado, &listos);        }
         }
-
-        
-    }
 
     endwin();
     printf("Antes de liberar recursos: ejecucion=%p, listos=%p, terminados=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados);
