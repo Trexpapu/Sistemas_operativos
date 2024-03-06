@@ -149,6 +149,104 @@ void push(struct PCB **cabeza, struct PCB *ejecucion) {
 
 
 
+int kill_push(struct PCB **cabeza, int pid, struct PCB **terminados){
+
+    if (*cabeza == NULL){//verficamos si la lista donde buscamos esta vacia
+        return -1;
+    }
+
+    //vemos si el pid esta en el primer nodo
+    if ((*cabeza)->PID == pid){
+
+        // Crear un nuevo nodo de PCB
+            struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+            nuevoNodo->PID = (*cabeza)->PID;
+            nuevoNodo->AX = (*cabeza)->AX;
+            nuevoNodo->BX = (*cabeza)->BX;
+            nuevoNodo->CX = (*cabeza)->CX;
+            nuevoNodo->DX = (*cabeza)->DX;
+            nuevoNodo->PC = (*cabeza)->PC;
+            strcpy(nuevoNodo->fileName, (*cabeza)->fileName);
+            strcpy(nuevoNodo->IR, (*cabeza)->IR);
+            nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
+
+            // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
+            if (*terminados == NULL) {
+                *terminados = nuevoNodo;
+                return 0;
+            }
+
+            // Buscar el último nodo de la lista
+            struct PCB *ultimo = *terminados;
+            while (ultimo->sig != NULL) {
+                ultimo = ultimo->sig;
+            }
+
+            // Enlazar el nuevo nodo después del último nodo
+            ultimo->sig = nuevoNodo;
+
+
+        //liberamos el nodo 
+        struct PCB *temp = *cabeza;//referencia al nodo a eliminar
+        *cabeza = (*cabeza)->sig; //avanzamos al siguiente nodo
+        fclose(temp->programa);
+        free(temp); // Libera la memoria del nodo eliminado
+        return 0;
+    }
+
+
+
+    // Busca el nodo con el PID dado
+    struct PCB *actual = *cabeza;
+    struct PCB *anterior = NULL;
+
+    while (actual != NULL && actual->PID != pid) {
+        anterior = actual;
+        actual = actual->sig;
+    }
+
+    // Si se encontró el nodo con el PID dado
+    if (actual != NULL) {
+        anterior->sig = actual->sig; // Elimina el nodo ajustando los enlaces
+        
+        // Crear un nuevo nodo de PCB
+            struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+            nuevoNodo->PID = actual->PID;
+            nuevoNodo->AX = actual->AX;
+            nuevoNodo->BX = actual->BX;
+            nuevoNodo->CX = actual->CX;
+            nuevoNodo->DX = actual->DX;
+            nuevoNodo->PC = actual->PC;
+            strcpy(nuevoNodo->fileName, actual->fileName);
+            strcpy(nuevoNodo->IR, actual->IR);
+            nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
+
+            // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
+            if (*terminados == NULL) {
+                *terminados = nuevoNodo;
+                return 0;
+            }
+
+            // Buscar el último nodo de la lista
+            struct PCB *ultimo = *terminados;
+            while (ultimo->sig != NULL) {
+                ultimo = ultimo->sig;
+            }
+
+            // Enlazar el nuevo nodo después del último nodo
+            ultimo->sig = nuevoNodo;
+
+        fclose(actual->programa);
+        free(actual); // Libera la memoria del nodo eliminado
+        
+    } else {
+        return -1;
+    }
+    return 0;
+}
+
+
+
 int kill(struct PCB **cabeza, int pid) {
     // Verifica si la lista está vacía
     if (*cabeza == NULL) {
@@ -183,6 +281,8 @@ int kill(struct PCB **cabeza, int pid) {
 
     return 0;
 }
+
+
 
 
 void prints_titulos(){
