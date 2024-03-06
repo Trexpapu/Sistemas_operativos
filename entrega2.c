@@ -186,7 +186,7 @@ void mostrar_errores_de_archivo(char linea[100], int opcion){
     sscanf(linea, "%s %s %s %s", operacion, p1, p2, error);
     switch(opcion){
         case 99:
-            mvprintw(ejey, ejex, " ejey                                                                                                              ");
+            mvprintw(ejey, ejex, "                                                                                                              ");
             mvprintw(ejey, ejex, "Se llego al final del archivo");
             break;
         case 401:
@@ -292,9 +292,9 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
 
     } else if (ejecucion_a_comandos == 237) {
 
-        retorno_kill = kill(listos, atoi(numero_de_kill));
+        retorno_kill = kill_push(listos, atoi(numero_de_kill), terminados);
         if (retorno_kill != 0) {
-            retorno_kill = kill(ejecucion, atoi(numero_de_kill));
+            retorno_kill = kill_push(ejecucion, atoi(numero_de_kill), terminados);
             if (retorno_kill != 0) {
                 retorno_kill = kill(terminados, atoi(numero_de_kill));
                 if (retorno_kill != 0) {
