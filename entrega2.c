@@ -74,7 +74,19 @@ int atiende_shell(char *comando, int *j, int *y) {
             return validar_comandos(comando);
             
             
-        }else{
+        }else if(comando[*j] == 127){//para el backspace
+            if((*j)>0){
+                comando[*j] = '\0';
+                (*j)--;
+                mvprintw(*y, 0, "                                                              ");
+
+            }else if((*j) == 0){
+                comando[*j] = '\0';
+                mvprintw(*y, 0, "                                                              ");
+            }
+        }
+        
+        else{
             (*j)++;
         }
 
@@ -95,6 +107,8 @@ int atiende_shell(char *comando, int *j, int *y) {
 
     return 0;
 }
+
+
 
 void prints(int *y, char *comando){
     for (int i = 0; i < 300; i++) {
@@ -365,6 +379,8 @@ int main(void) {
         if (bandera==1){//si bandera es 1 entonces podemos seguir leyendo el archivo
             leer_lineas(&ejecucion, &bandera, ejecucion->programa, &quantum, &programa_cargado, &listos);        }
         }
+
+
 
     endwin();
     printf("Antes de liberar recursos: ejecucion=%p, listos=%p, terminados=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados);
