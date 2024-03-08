@@ -56,6 +56,11 @@ void liberar_lista_terminados(struct PCB **cabeza) {
 void re_insert(struct PCB **cabeza, struct PCB *ejecucion) {
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+    if(nuevoNodo == NULL){
+        mvprintw(40, 5, "Error no se puedo reservar mas memoria...");
+        refresh();
+        return;
+    }
     nuevoNodo->PID = ejecucion->PID;
     nuevoNodo->AX = ejecucion->AX;
     nuevoNodo->BX = ejecucion->BX;
@@ -90,6 +95,11 @@ void re_insert(struct PCB **cabeza, struct PCB *ejecucion) {
 void insert(struct PCB **cabeza, char *nombrePrograma) {
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+    if(nuevoNodo == NULL){
+        mvprintw(40, 5, "Error no se puedo reservar mas memoria...");
+        refresh();
+        return;
+    }
     nuevoNodo->PID = P_count++;
     nuevoNodo->AX = 0;
     nuevoNodo->BX = 0;
@@ -121,6 +131,11 @@ void insert(struct PCB **cabeza, char *nombrePrograma) {
 void push(struct PCB **cabeza, struct PCB *ejecucion) {
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+    if(nuevoNodo == NULL){
+        mvprintw(40, 5, "Error no se puedo reservar mas memoria...");
+        refresh();
+        return;
+    }
     nuevoNodo->PID = ejecucion->PID;
     nuevoNodo->AX = ejecucion->AX;
     nuevoNodo->BX = ejecucion->BX;
@@ -160,6 +175,11 @@ int kill_push(struct PCB **cabeza, int pid, struct PCB **terminados){
 
         // Crear un nuevo nodo de PCB
             struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+                if(nuevoNodo == NULL){
+                mvprintw(40, 5, "Error no se puedo reservar mas memoria...");
+                refresh();
+                return 3;
+                }
             nuevoNodo->PID = (*cabeza)->PID;
             nuevoNodo->AX = (*cabeza)->AX;
             nuevoNodo->BX = (*cabeza)->BX;
@@ -211,6 +231,11 @@ int kill_push(struct PCB **cabeza, int pid, struct PCB **terminados){
         
         // Crear un nuevo nodo de PCB
             struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+            if(nuevoNodo == NULL){
+                mvprintw(40, 5, "Error no se puedo reservar mas memoria...");
+                refresh();
+                return 3;
+                }
             nuevoNodo->PID = actual->PID;
             nuevoNodo->AX = actual->AX;
             nuevoNodo->BX = actual->BX;
