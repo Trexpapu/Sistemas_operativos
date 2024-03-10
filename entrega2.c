@@ -244,7 +244,7 @@ void mostrar_errores_de_archivo(char linea[100], int opcion){
     
 }
 
-void mostrar_errores_de_ejecucion(int opcion){
+void mostrar_errores_de_kill(int opcion){
     int ejey = 40;
     int ejex = 5;
     switch (opcion)
@@ -312,12 +312,12 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
             if (retorno_kill != 0) {
                 retorno_kill = kill(terminados, atoi(numero_de_kill));
                 if (retorno_kill != 0) {
-                    mostrar_errores_de_ejecucion(1);
+                    mostrar_errores_de_kill(1);
                 }
             } else {
                 *bandera = 0;
                 *programa_cargado = 0;
-                mostrar_errores_de_ejecucion(2);
+                mostrar_errores_de_kill(2);
             }
         }
     }
