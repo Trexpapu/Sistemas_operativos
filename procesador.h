@@ -551,8 +551,7 @@ void impresionPCB(struct PCB *pcb){
         mvprintw(25, 130, "FileName:                                ");
         mvprintw(25, 130, "FileName: %s", pcb->fileName);
 
-
-        usleep(500000); //espera para ver cada lectura del archivo
+        
     
     refresh();
 }
