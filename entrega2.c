@@ -11,7 +11,7 @@
 
 char archivo[200];//variable global de archivo
 char numero_de_kill[200];
-
+int sleep_global = 500000; //espera para ver cada lectura del archivo
 
 int validar_comandos(char *comando){
     char accion[100];
@@ -83,6 +83,31 @@ int atiende_shell(char *comando, int *j, int *y) {
             }else if((*j) == 0){
                 comando[*j] = '\0';
                 mvprintw(*y, 0, "                                                              ");
+            }
+        }else if(comando[(*j)-2] == 27){//verificar secuencia de flechas
+            if(comando[(*j) - 1] == 91){//verificar la secuendia de teclas
+                
+                if(comando[*j] == 67){//felcha derecha
+                    comando[*j] = '\0';
+                    (*j)--;
+                    comando[*j] = '\0';
+                    (*j)--;
+                    comando[*j] = '\0';
+                    mvprintw(*y, 0, "                                                              ");
+                    if (sleep_global < 800000){
+                        sleep_global += 100000;
+                    }
+                }else if(comando[*j] == 68){//flecha izquierda
+                    comando[*j] = '\0';
+                    (*j)--;
+                    comando[*j] = '\0';
+                    (*j)--;
+                    comando[*j] = '\0';
+                    mvprintw(*y, 0, "                                                              ");
+                    if (sleep_global > 100000){
+                        sleep_global -= 100000;
+                    }
+                }
             }
         }
         
@@ -338,6 +363,12 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
 }
 
 
+void imprimir_sleep(){
+    mvprintw(28, 130, "sleep                                ");
+    mvprintw(28, 130, "sleep %d", sleep_global);
+    refresh();
+}
+
 
 int main(void) {
     struct PCB *listos = NULL; // Lista de nodos en espera por ser ejecutados
@@ -371,10 +402,12 @@ int main(void) {
         imprimir_ejecion(ejecucion, 140, 3);
         imprimir_listos(listos, 82, 35);
         imprimir_terminados(terminados, 124, 35);
+        imprimir_sleep();
 
         manejar_procesos(&listos, &terminados, &ejecucion, &bandera, &programa_cargado, ejecucion_a_comandos, archivo_valido, retorno_kill);
 
         if (bandera==1){//si bandera es 1 entonces podemos seguir leyendo el archivo
+            usleep(sleep_global); //espera para ver cada lectura del archivo
             leer_lineas(&ejecucion, &bandera, ejecucion->programa, &quantum, &programa_cargado, &listos);        }
         }
 
