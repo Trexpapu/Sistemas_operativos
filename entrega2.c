@@ -109,25 +109,20 @@ int atiende_shell(char *comando, int *j, int *y) {
                     }
                 }
             }
-        }
-        
-        else{
+        }else{
             (*j)++;
         }
+    }//fin kbhit
 
-
-
-        if((*y)>=20){//limpiar la pantalla cuando mi prompt llegue a cierto limite
+    if((*y)>=20){//limpiar la pantalla cuando mi prompt llegue a cierto limite
             for (int i =0; i<=20;i++){
                 mvprintw(i, 0, "                                                                                         ");
             }
             (*y)=0;
 
         }
-        
-        // Imprimir el prompt y el comando
-        mvprintw(*y, 0, "PROMPT > %s", comando);
-    }
+    // Imprimir el prompt y el comando
+    mvprintw(*y, 0, "PROMPT > %s", comando);
     refresh();
 
     return 0;
