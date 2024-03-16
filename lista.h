@@ -70,6 +70,7 @@ void re_insert(struct PCB **cabeza, struct PCB *ejecucion) {
     strcpy(nuevoNodo->fileName, ejecucion->fileName);
     strcpy(nuevoNodo->IR, ejecucion->IR);
     nuevoNodo->programa = ejecucion->programa;
+    //nuevoNodo = ejecucion;
     nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
     // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
@@ -360,7 +361,7 @@ void imprimir_terminados(struct PCB *cabeza, int x, int eje_y) {
     }
     while (actual != NULL) {
         // Imprime los valores del nodo actual
-        mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC);
+        mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d, IR:%s", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC, actual->IR);
 
         
         // Avanza al siguiente nodo
@@ -368,4 +369,54 @@ void imprimir_terminados(struct PCB *cabeza, int x, int eje_y) {
         eje_y++; // Incrementa la fila de impresión
     }
     refresh(); // Refresca la pantalla
+}
+
+
+void contador_de_programas(struct PCB **listos, struct PCB **ejecucion, int *contador) {
+    (*contador) = 0;
+
+    // Crear una lista temporal para almacenar los nombres de archivo únicos
+    char nombres_unicos[256][256]; // Suponemos que los nombres de archivo tienen como máximo 256 caracteres
+    int num_nombres_unicos = 0;
+
+    // Contar nombres de archivo únicos en ejecución
+    if (*ejecucion != NULL) {
+        struct PCB *actual_ejecucion = *ejecucion;
+        while (actual_ejecucion != NULL) {
+            int encontrado = 0;
+            for (int i = 0; i < num_nombres_unicos; i++) {
+                if (strcmp(nombres_unicos[i], actual_ejecucion->fileName) == 0) {
+                    encontrado = 1;
+                    break;
+                }
+            }
+            if (!encontrado) {
+                strcpy(nombres_unicos[num_nombres_unicos], actual_ejecucion->fileName);
+                num_nombres_unicos++;
+            }
+            actual_ejecucion = actual_ejecucion->sig;
+        }
+    }
+
+    // Contar nombres de archivo únicos en listos
+    if (*listos != NULL) {
+        struct PCB *actual_listos = *listos;
+        while (actual_listos != NULL) {
+            int encontrado = 0;
+            for (int i = 0; i < num_nombres_unicos; i++) {
+                if (strcmp(nombres_unicos[i], actual_listos->fileName) == 0) {
+                    encontrado = 1;
+                    break;
+                }
+            }
+            if (!encontrado) {
+                strcpy(nombres_unicos[num_nombres_unicos], actual_listos->fileName);
+                num_nombres_unicos++;
+            }
+            actual_listos = actual_listos->sig;
+        }
+    }
+
+    // Asignar el valor final al contador
+    (*contador) = num_nombres_unicos;
 }

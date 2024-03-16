@@ -443,7 +443,7 @@ int validar_operaciones_de_archivo(struct PCB *pcb) {
 
         //manejo de errores al validar las operaciones
         if(operador==700 || operador==800){
-            return 501;//operacion de 2 con demasiados parametros
+            return 501;//operacion de inc o dec con demasiados parametros
         }
 
         if (operador==60){
