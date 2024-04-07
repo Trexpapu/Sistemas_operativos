@@ -7,27 +7,54 @@
 #include "procesador.h"
 #include "lista.h"
 
-
+//SECCION DE VARIABLES GLOBALES
 
 char archivo[200];//variable global de archivo
 char numero_de_kill[200];
 int global_sleep = 500000; //espera para ver cada lectura del archivo
+#define maxQUANTUM 15 //cantidad máxima de lectura de lineas
+int incCPU = 60 / maxQUANTUM; // Quantum por proceso (60/MAXQUANTUM).
+int PBase = 60; //Prioridad base para todos los procesos (60).
+int NumUs = 0; //Cantidad de usuarios para los cuales planificar (0).
+float W = 0.0; //Posteriormente (1/NumUsuarios)
+char UserID[40]; // se usa para la conversion atoi
+int copia_userID = 0; //se guarda la copia si el atoi es exitoso
+int contador_usuarios = 0;
+
+
+
 int validar_comandos(char *comando){
     char accion[100];
     //verificar que esta bien el comando LOAD FILE
-                if (sscanf(comando, "%s %s", accion, archivo)==2){
+                if (sscanf(comando, "%s %s %s", accion, archivo, UserID)==3){
                     //comprobar si la accion es load
                     if (strcmp(accion, "load") == 0){
                         //verificar si existe el archivo
                          if (access(archivo, F_OK) != -1){
-                           //retornamos 200 es decir si existe el archivo
-                            return 200;
-                            
+                            if(atoi(UserID)){
+                                //return 200 para decir que si existe el archivo y el UserId es un numero valido
+                                copia_userID = atoi(UserID);
+                                return 200;
+                            }else{
+                                //para decir que userID no es un numero entero valido
+                                return 777;
+                            }    
                          }else{
                             //printf("No existe el archivo ingresado\n");
                             return 405;
                          }
 
+                    }else if(strcmp(accion, "kill") == 0){
+                        return 437; //kill necesita solo un numero entero como parámetro
+
+                    }else{
+                        return 400;//printf("comando no reconocido\n");
+                    }
+
+                }else if(sscanf(comando, "%s %s %s", accion, archivo, UserID)==2){
+                    if (strcmp(accion, "load") == 0){
+                        //faltan parámetros en load
+                        return 410;
                     }else if(strcmp(accion, "kill") == 0){
                         strcpy(numero_de_kill, archivo); // Copiar archivo a numero_de_kill
 
@@ -36,14 +63,12 @@ int validar_comandos(char *comando){
                         }else{
                             return 437; //atoi necesita un numero entero
                         }
-
                     }else{
                         return 400;//printf("comando no reconocido\n");
                     }
-
-                }else if(sscanf(comando, "%s %s", accion, archivo)==1){
+                }else if(sscanf(comando, "%s %s %s", accion, archivo, UserID)==1){
                     if (strcmp(accion, "load") == 0){
-                        //printf("Error el comando es: load file\n");
+                        //faltan parámetros en load
                         return 410;
                     }else if(strcmp(accion, "exit") == 0){
                         return 10;
@@ -180,7 +205,7 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
 
             case 410:
                 mvprintw(ejey, ejex, "                                                                                                               ");
-                mvprintw(ejey, ejex, "Error load necesita como parametro un archivo... Ejemplo: load file.txt");
+                mvprintw(ejey, ejex, "Error load necesita como parametros archivo y ID. Ejemplo: load file.txt ID");
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
@@ -189,7 +214,7 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
             
             case 437:
                 mvprintw(ejey, ejex, "                                                                                                               ");
-                mvprintw(ejey, ejex, "Error kill necesita un numero como parametro...");
+                mvprintw(ejey, ejex, "Error kill solo necesita un número como parámetro...");
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
@@ -202,6 +227,14 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
+            case 777:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "El UserID ingresado no es valido, necesita ser un número entero");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                break;
+
 
         }
 
@@ -275,11 +308,11 @@ void mostrar_mensajes_ejecucion(int opcion){
         break;
     case 2:
         mvprintw(ejey, ejex, "                                                                                                               ");
-        mvprintw(ejey, ejex, "Se elimino el proceso en ejecucion con el PID: %s ", numero_de_kill);
+        mvprintw(ejey, ejex, "Se eliminó el proceso en ejecucion-> PID: %s ", numero_de_kill);
         break;
     case 3:
         mvprintw(ejey, ejex, "                                                                                                               ");
-        mvprintw(ejey, ejex, "Se elimino el proceso con el PID: %s ", numero_de_kill);
+        mvprintw(ejey, ejex, "Se eliminó el proceso con el PID: %s ", numero_de_kill);
         break;
     
 
@@ -294,6 +327,11 @@ int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quan
     if (fgets((*ejecucion)->IR, sizeof((*ejecucion)->IR), n_archivo) != NULL) { // Leeemos la línea del archivo
         
         x = validar_operaciones_de_archivo(*ejecucion); // Ejecutamos función pasando la estructura
+        //Si hay algún proceso en ejecución y aún no termina su quantum
+        //Actualiza los contadores de uso del CPU para el proceso en ejecución: KCPU = KCPU + IncCPU
+        //Actualiza los contadores de uso del CPU para todos los procesos (no Terminados) del usuario dueño del proceso en ejecución: KCPUxU = KCPUxU + IncCPU
+        (*ejecucion)->KCPU += incCPU;
+        actualizarKCPUxU(listos, (*ejecucion)->UID, incCPU);
         (*ejecucion)->PC ++;
         (*quantum)++;
         impresionPCB(*ejecucion);
@@ -311,11 +349,16 @@ int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quan
         mostrar_errores_de_archivo((*ejecucion), 99);
     }
     
-    if ((*quantum) >= 15) {//si se llego al limite de lineas leidas por archivo reinstarmos al final de la lista listos
+    if ((*quantum) >= maxQUANTUM) {//si se llego al limite de lineas leidas por archivo reinstarmos al final de la lista listos
         (*bandera) = 0;
         (*programa_cargado) = 0;
         re_insert(listos, *ejecucion);
         kill(ejecucion, (*ejecucion)->PID);
+        //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
+        Actualizar_planificacion(listos, PBase, W);
+        if(contador_usuarios != 0){ ////////////////actualizar w al crear o terminar proceso
+            W = 1.0 / (float)contador_usuarios;
+        }
         (*quantum) = 0;
     }
     return 0;
@@ -325,7 +368,11 @@ int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quan
 void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB **ejecucion, int *bandera, int *programa_cargado, int ejecucion_a_comandos, char archivo_valido[200], int retorno_kill) {
     if (ejecucion_a_comandos == 200) {
         strcpy(archivo_valido, archivo);
-        insert(listos, archivo_valido);
+        insert(listos, archivo_valido, PBase, copia_userID);
+        if(contador_usuarios != 0){ ////////////////actualizar w al crear o terminar proceso
+            W = 1.0 / (float)contador_usuarios;
+        }
+        
 
     } else if (ejecucion_a_comandos == 237) {//si se ejecuta el kill
 
@@ -339,15 +386,20 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
                 *bandera = 0;
                 *programa_cargado = 0;
                 mostrar_mensajes_ejecucion(2);
+                if(contador_usuarios != 0){ ////////////////actualizar w al crear o terminar proceso
+                    W = 1.0 / (float)contador_usuarios;
+                }
             }
-        }
-        else{//si se encontro en listos
+        }else{//si se encontro en listos
             mostrar_mensajes_ejecucion(3);
+            if(contador_usuarios != 0){ ////////////////actualizar w al crear o terminar proceso
+                W = 1.0 / (float)contador_usuarios;
+            }
         }
     }
 
     if (*programa_cargado == 0) {
-        *ejecucion = pull(listos);
+        *ejecucion = pull(listos);//pull es para extraccion a ejecucion
         if (*ejecucion != NULL) {
             impresionPCB(*ejecucion);
             *programa_cargado = 1;
@@ -357,18 +409,23 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
 
     if (*programa_cargado == 1) {
         if (*bandera == 0) {
-            push(terminados, *ejecucion);
+            push(terminados, *ejecucion);//push es para extraer de ejecucion a terminados
             *programa_cargado = 0;
+            if(contador_usuarios != 0){ ////////////////actualizar w al crear o terminar proceso
+                    W = 1.0 / (float)contador_usuarios;
+                }
         }
     }
 }
 
 
-void print_sleep(int contador_programas){
+void print_sleep_and_count(int contador_usuarios){
     mvprintw(28, 130, "sleep                  ");
     mvprintw(28, 130, "sleep %d", global_sleep);
-    mvprintw(28, 160, "                   ");
-    mvprintw(28, 160, "Programas: %d", contador_programas);
+    mvprintw(28, 160, "                 ");
+    mvprintw(28, 160, "Programas: %d", contador_usuarios);
+    mvprintw(28, 180, "         ");
+    mvprintw(28, 180, "W: %.2f", W);
     refresh();
 }
 
@@ -378,7 +435,7 @@ int main(void) {
     struct PCB *terminados = NULL; //lista de nodos terminados
     struct PCB *ejecucion = malloc(sizeof(struct PCB));//nodo unico en ejecucion
     int quantum = 0;
-    int contador_programas = 0;
+    
     
     
     char comando[60] = {0};//comando o cadena donde se leera lo escrito
@@ -406,7 +463,7 @@ int main(void) {
         imprimir_ejecion(ejecucion, 140, 3);
         imprimir_listos(listos, 82, 35);
         imprimir_terminados(terminados, 124, 35);
-        print_sleep(contador_programas);
+        print_sleep_and_count(contador_usuarios);
 
         manejar_procesos(&listos, &terminados, &ejecucion, &bandera, &programa_cargado, ejecucion_a_comandos, archivo_valido, retorno_kill);
 
@@ -415,7 +472,8 @@ int main(void) {
             leer_lineas(&ejecucion, &bandera, ejecucion->programa, &quantum, &programa_cargado, &listos);        
             }
 
-        contador_de_programas(&listos, &ejecucion, &contador_programas);
+        contador_de_usuarios(&listos, &ejecucion, &contador_usuarios);
+        
         }
 
 
