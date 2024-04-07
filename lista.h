@@ -13,14 +13,32 @@ struct PCB* pull(struct PCB **cabeza) {
         return NULL; // Devuelve NULL si la lista está vacía
     }
 
-    struct PCB* primerNodo = *cabeza; // Guarda referencia al primer nodo
+    struct PCB* Nodo_minimo = *cabeza; // Guarda referencia al nodo con la menor prioridad
+    struct PCB* previo = NULL; // Guarda referencia al nodo anterior al nodo mínimo
+    struct PCB* actual = *cabeza; // Guarda referencia al nodo actual durante el recorrido
 
-    // Avanza la cabeza al siguiente nodo
-    *cabeza = primerNodo->sig;
+    // Encuentra el nodo con la menor prioridad
+    int Prioridad_minima = Nodo_minimo->P;
+    while (actual->sig != NULL){
+        if(actual->sig->P < Prioridad_minima){
+            Prioridad_minima = actual->sig->P;
+            Nodo_minimo = actual->sig; // Actualiza el nodo con la menor prioridad
+            previo = actual; // Actualiza el nodo anterior al nodo mínimo
+        }
+        actual = actual->sig;
+    }
 
-    // Devuelve el nodo extraído antes de liberar la memoria
-    return primerNodo;
+    // Si el nodo mínimo está en la cabeza de la lista, actualiza la cabeza
+    if (previo == NULL) {
+        *cabeza = Nodo_minimo->sig;
+    } else {
+        previo->sig = Nodo_minimo->sig;
+    }
+
+    // Devuelve el nodo extraído
+    return Nodo_minimo;
 }
+
 
 
 void liberar_listos(struct PCB **cabeza) {
@@ -61,16 +79,7 @@ void re_insert(struct PCB **cabeza, struct PCB *ejecucion) {
         refresh();
         return;
     }
-    nuevoNodo->PID = ejecucion->PID;
-    nuevoNodo->AX = ejecucion->AX;
-    nuevoNodo->BX = ejecucion->BX;
-    nuevoNodo->CX = ejecucion->CX;
-    nuevoNodo->DX = ejecucion->DX;
-    nuevoNodo->PC = ejecucion->PC;
-    strcpy(nuevoNodo->fileName, ejecucion->fileName);
-    strcpy(nuevoNodo->IR, ejecucion->IR);
-    nuevoNodo->programa = ejecucion->programa;
-    //nuevoNodo = ejecucion;
+    *nuevoNodo = *ejecucion; // Copiar la estructura ejecucion en nuevoNodo
     nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
     // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
@@ -90,10 +99,38 @@ void re_insert(struct PCB **cabeza, struct PCB *ejecucion) {
 }
 
 
+void actualizarKCPUxU(struct PCB **cabeza, int UID, int IncCPU){
+    // Verifica si la lista está vacía
+    if (*cabeza == NULL) {
+        return; // Devuelve si la lista está vacía
+    }
+    struct PCB *Nodo = *cabeza;
+    while (Nodo != NULL){
+        if(Nodo->UID == UID){
+            (Nodo->KCPUxU) += IncCPU;
+        }
+        Nodo = Nodo->sig;
+    }
+}
+
+void Actualizar_planificacion(struct PCB **cabeza, int PBase, float W) {
+    // Verifica si la lista está vacía
+    if (*cabeza == NULL) {
+        return; // Devuelve si la lista está vacía
+    }
+    struct PCB *Nodo = *cabeza;
+    while (Nodo != NULL) {
+        Nodo->KCPU /= 2;
+        Nodo->KCPUxU /= 2;
+        float tempP = PBase + (Nodo->KCPU) / 2.0 + (Nodo->KCPUxU) / (4.0 * W);//realizando operaciones con puros floats
+        Nodo->P = (int)tempP; // Convierte el resultado a int
+        Nodo = Nodo->sig; 
+    }
+}
 
 
 // Función para crear un nuevo nodo de PCB y agregar el nombre del programa al inicio de la lista
-void insert(struct PCB **cabeza, char *nombrePrograma) {
+void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id) {
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
     if(nuevoNodo == NULL){
@@ -110,6 +147,10 @@ void insert(struct PCB **cabeza, char *nombrePrograma) {
     strcpy(nuevoNodo->fileName, nombrePrograma);
     strcpy(nuevoNodo->IR, "    ");
     nuevoNodo->programa = fopen(nuevoNodo->fileName, "r");
+    nuevoNodo->P = Pbase;
+    nuevoNodo->KCPU = 0;
+    nuevoNodo->KCPUxU = 0;
+    nuevoNodo->UID = user_id;
     nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
     // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
@@ -323,11 +364,11 @@ void prints_titulos(){
 void imprimir_ejecion(struct PCB *cabeza, int x, int eje_y) {
     struct PCB *primerNodo = cabeza; // Guarda referencia al primer nodo
     
-    mvprintw(eje_y, x, "                                                ");
+    mvprintw(eje_y, x, "                                                              ");
     
     if (primerNodo != NULL) {
         // Imprime los valores del primer nodo
-        mvprintw(eje_y, x, "PID: %d, Nombre del programa: %s\n", primerNodo->PID, primerNodo->fileName);
+        mvprintw(eje_y, x, "PID: %d, Nombre del programa: %s, Dueño: %d\n", primerNodo->PID, primerNodo->fileName, primerNodo->UID);
     }
     
     refresh(); // Refresca la pantalla
@@ -339,11 +380,11 @@ void imprimir_listos(struct PCB *cabeza, int x, int eje_y) {
     
     // Itera sobre todos los nodos de la lista
     for(int i = eje_y; i<=55; i++){
-        mvprintw(i, x, "                             ");
+        mvprintw(i, x, "                                      ");
     }
     while (actual != NULL) {
         // Imprime los valores del nodo actual
-        mvprintw(eje_y, x, "PID:%d, Programa:%s\n", actual->PID, actual->fileName);
+        mvprintw(eje_y, x, "PID:%d, Programa:%s, Dueño:%d\n", actual->PID, actual->fileName, actual->UID);
         
         // Avanza al siguiente nodo
         actual = actual->sig;
@@ -372,51 +413,52 @@ void imprimir_terminados(struct PCB *cabeza, int x, int eje_y) {
 }
 
 
-void contador_de_programas(struct PCB **listos, struct PCB **ejecucion, int *contador) {
+void contador_de_usuarios(struct PCB **listos, struct PCB **ejecucion, int *contador) {
     (*contador) = 0;
 
-    // Crear una lista temporal para almacenar los nombres de archivo únicos
-    char nombres_unicos[256][256]; // Suponemos que los nombres de archivo tienen como máximo 256 caracteres
-    int num_nombres_unicos = 0;
+    // Crear un array para almacenar los UID únicos
+    int uid_unicos[256]; // Suponemos que hay como máximo 256 UID distintos
+    int num_uid_unicos = 0;
 
-    // Contar nombres de archivo únicos en ejecución
+    // Contar UID únicos en ejecución
     if (*ejecucion != NULL) {
         struct PCB *actual_ejecucion = *ejecucion;
         while (actual_ejecucion != NULL) {
             int encontrado = 0;
-            for (int i = 0; i < num_nombres_unicos; i++) {
-                if (strcmp(nombres_unicos[i], actual_ejecucion->fileName) == 0) {
+            for (int i = 0; i < num_uid_unicos; i++) {
+                if (uid_unicos[i] == actual_ejecucion->UID) {
                     encontrado = 1;
                     break;
                 }
             }
             if (!encontrado) {
-                strcpy(nombres_unicos[num_nombres_unicos], actual_ejecucion->fileName);
-                num_nombres_unicos++;
+                uid_unicos[num_uid_unicos] = actual_ejecucion->UID;
+                num_uid_unicos++;
             }
             actual_ejecucion = actual_ejecucion->sig;
         }
     }
 
-    // Contar nombres de archivo únicos en listos
+    // Contar UID únicos en listos
     if (*listos != NULL) {
         struct PCB *actual_listos = *listos;
         while (actual_listos != NULL) {
             int encontrado = 0;
-            for (int i = 0; i < num_nombres_unicos; i++) {
-                if (strcmp(nombres_unicos[i], actual_listos->fileName) == 0) {
+            for (int i = 0; i < num_uid_unicos; i++) {
+                if (uid_unicos[i] == actual_listos->UID) {
                     encontrado = 1;
                     break;
                 }
             }
             if (!encontrado) {
-                strcpy(nombres_unicos[num_nombres_unicos], actual_listos->fileName);
-                num_nombres_unicos++;
+                uid_unicos[num_uid_unicos] = actual_listos->UID;
+                num_uid_unicos++;
             }
             actual_listos = actual_listos->sig;
         }
     }
 
     // Asignar el valor final al contador
-    (*contador) = num_nombres_unicos;
+    (*contador) = num_uid_unicos;
 }
+
