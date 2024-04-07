@@ -17,6 +17,10 @@ struct PCB
     char fileName[256];
     FILE *programa; //puntero a un archivo
     struct PCB *sig; //siguiente estructura o nodo
+    int UID; //User IDentifier (Identificador de usuario).
+    int P; //Prioridad del proceso.
+    int KCPU; //Contador de uso de CPU por proceso.
+    int KCPUxU; //Contador de uso de CPU por usuario.
 };
 
 void librerar_recursos(struct PCB *pcb) {
@@ -527,32 +531,45 @@ int validar_operaciones_de_archivo(struct PCB *pcb) {
 void impresionPCB(struct PCB *pcb){
     
 
-        mvprintw(25, 100, "IR              ");
-        mvprintw(25, 100, "IR: %s", pcb->IR);//imprimimos el IR, cada linea de archivo
 
-        mvprintw(20, 100, "PC:         ");
-        mvprintw(20, 100, "PC: %d", pcb->PC);//imprimimos el PC, contador de las lineas de archivo
+        mvprintw(0, 85, "AX:     ");
+        mvprintw(0, 85, "AX: %d", pcb->AX);
 
-        mvprintw(0, 100, "AX:                ");
-        mvprintw(0, 100, "AX: %d", pcb->AX);
+        mvprintw(5, 85, "BX:     ");
+        mvprintw(5, 85, "BX: %d", pcb->BX);
 
-        mvprintw(5, 100, "BX:               ");
-        mvprintw(5, 100, "BX: %d", pcb->BX);
+        mvprintw(10, 85, "CX:    ");
+        mvprintw(10, 85, "CX: %d", pcb->CX);
 
-        mvprintw(10, 100, "CX:               ");
-        mvprintw(10, 100, "CX: %d", pcb->CX);
+        mvprintw(15, 85, "DX:     ");
+        mvprintw(15, 85, "DX: %d", pcb->DX);
 
-        mvprintw(15, 100, "DX:              ");
-        mvprintw(15, 100, "DX: %d", pcb->DX);
+        mvprintw(25, 85, "PID:   ");
+        mvprintw(25, 85, "PID: %d", pcb->PID);
 
-        mvprintw(20, 130, "PID:               ");
-        mvprintw(20, 130, "PID: %d", pcb->PID);
+        mvprintw(25, 100, "FileName:                             ");
+        mvprintw(25, 100, "FileName: %s", pcb->fileName);
 
-        mvprintw(25, 130, "FileName:                                ");
-        mvprintw(25, 130, "FileName: %s", pcb->fileName);
 
+        mvprintw(20, 100, "IR                  ");
+        mvprintw(20, 100, "IR: %s", pcb->IR);//imprimimos el IR, cada linea de archivo
+
+        mvprintw(20, 85, "PC:   ");
+        mvprintw(20, 85, "PC: %d", pcb->PC);//imprimimos el PC, contador de las lineas de archivo
+
+        mvprintw(15, 100, "UID:      ");
+        mvprintw(15, 100, "UID: %d", pcb->UID);
+
+        mvprintw(10, 100, "P:    ");
+        mvprintw(10, 100, "P: %d", pcb->P);
         
-    
+        mvprintw(5, 100, "KCPU:     ");
+        mvprintw(5, 100, "KCPU: %d", pcb->KCPU);
+
+
+        mvprintw(0, 100, "KCPUxU:     ");
+        mvprintw(0, 100, "KCPUxU: %d", pcb->KCPUxU);
+
     refresh();
 }
 
@@ -570,21 +587,29 @@ int verificar_archivo(char archivo[100]){
 }
 
 void prints_procesador(){
-        mvprintw(25, 100, "IR              ");
+        mvprintw(20, 100, "IR     ");
 
-        mvprintw(20, 100, "PC:         ");
+        mvprintw(20, 85, "PC:   ");
 
-        mvprintw(0, 100, "AX:                ");
+        mvprintw(0, 85, "AX:     ");
 
-        mvprintw(5, 100, "BX:               ");
+        mvprintw(5, 85, "BX:      ");
 
-        mvprintw(10, 100, "CX:               ");
+        mvprintw(10, 85, "CX:      ");
 
-        mvprintw(15, 100, "DX:              ");
+        mvprintw(15, 85, "DX:       ");
 
-        mvprintw(20, 130, "PID:               ");
+        mvprintw(25, 85, "PID:      ");
 
-        mvprintw(25, 130, "FileName:                                ");
+        mvprintw(15, 100, "UID:     ");
+
+        mvprintw(10, 100, "P:     ");
+
+        mvprintw(5, 100, "KCPU:     ");
+
+        mvprintw(0, 100, "KCPUxU:     ");
+
+        mvprintw(25, 100, "FileName:    ");
         mvprintw(0,0,"");
     refresh();
 }
