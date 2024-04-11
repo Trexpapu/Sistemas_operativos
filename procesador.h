@@ -16,11 +16,12 @@ struct PCB
     int PID;
     char fileName[256];
     FILE *programa; //puntero a un archivo
-    struct PCB *sig; //siguiente estructura o nodo
     int UID; //User IDentifier (Identificador de usuario).
     int P; //Prioridad del proceso.
     int KCPU; //Contador de uso de CPU por proceso.
     int KCPUxU; //Contador de uso de CPU por usuario.
+    struct PCB *sig; //siguiente estructura o nodo
+    
 };
 
 void librerar_recursos(struct PCB *pcb) {
