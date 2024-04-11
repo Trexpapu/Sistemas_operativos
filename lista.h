@@ -178,14 +178,7 @@ void push(struct PCB **cabeza, struct PCB *ejecucion) {
         refresh();
         return;
     }
-    nuevoNodo->PID = ejecucion->PID;
-    nuevoNodo->AX = ejecucion->AX;
-    nuevoNodo->BX = ejecucion->BX;
-    nuevoNodo->CX = ejecucion->CX;
-    nuevoNodo->DX = ejecucion->DX;
-    nuevoNodo->PC = ejecucion->PC;
-    strcpy(nuevoNodo->fileName, ejecucion->fileName);
-    strcpy(nuevoNodo->IR, ejecucion->IR);
+    *nuevoNodo = *ejecucion; // Copiar la estructura ejecucion en nuevoNodo
     nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
     // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
@@ -222,14 +215,8 @@ int kill_push(struct PCB **cabeza, int pid, struct PCB **terminados){
                 refresh();
                 return 3;
                 }
-            nuevoNodo->PID = (*cabeza)->PID;
-            nuevoNodo->AX = (*cabeza)->AX;
-            nuevoNodo->BX = (*cabeza)->BX;
-            nuevoNodo->CX = (*cabeza)->CX;
-            nuevoNodo->DX = (*cabeza)->DX;
-            nuevoNodo->PC = (*cabeza)->PC;
-            strcpy(nuevoNodo->fileName, (*cabeza)->fileName);
-            strcpy(nuevoNodo->IR, (*cabeza)->IR);
+
+            nuevoNodo = *cabeza;
             nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
             // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
@@ -278,14 +265,7 @@ int kill_push(struct PCB **cabeza, int pid, struct PCB **terminados){
                 refresh();
                 return 3;
                 }
-            nuevoNodo->PID = actual->PID;
-            nuevoNodo->AX = actual->AX;
-            nuevoNodo->BX = actual->BX;
-            nuevoNodo->CX = actual->CX;
-            nuevoNodo->DX = actual->DX;
-            nuevoNodo->PC = actual->PC;
-            strcpy(nuevoNodo->fileName, actual->fileName);
-            strcpy(nuevoNodo->IR, actual->IR);
+            nuevoNodo = actual;
             nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
             // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
@@ -364,11 +344,11 @@ void prints_titulos(){
 void imprimir_ejecion(struct PCB *cabeza, int x, int eje_y) {
     struct PCB *primerNodo = cabeza; // Guarda referencia al primer nodo
     
-    mvprintw(eje_y, x, "                                                              ");
+    mvprintw(eje_y, x, "                                                              -");
     
     if (primerNodo != NULL) {
         // Imprime los valores del primer nodo
-        mvprintw(eje_y, x, "PID: %d, Nombre del programa: %s, Dueño: %d\n", primerNodo->PID, primerNodo->fileName, primerNodo->UID);
+        mvprintw(eje_y, x, "PID:%d, Nombre del programa:%s, UID:[%d]   ", primerNodo->PID, primerNodo->fileName, primerNodo->UID);
     }
     
     refresh(); // Refresca la pantalla
@@ -380,11 +360,11 @@ void imprimir_listos(struct PCB *cabeza, int x, int eje_y) {
     
     // Itera sobre todos los nodos de la lista
     for(int i = eje_y; i<=55; i++){
-        mvprintw(i, x, "                                      ");
+            mvprintw(i, x, "                                      -");
     }
     while (actual != NULL) {
         // Imprime los valores del nodo actual
-        mvprintw(eje_y, x, "PID:%d, Programa:%s, Dueño:%d\n", actual->PID, actual->fileName, actual->UID);
+        mvprintw(eje_y, x, "UID:%d, Programa:%s, PID:[%d]", actual->UID, actual->fileName, actual->PID);
         
         // Avanza al siguiente nodo
         actual = actual->sig;
@@ -398,11 +378,12 @@ void imprimir_terminados(struct PCB *cabeza, int x, int eje_y) {
     
     // Itera sobre todos los nodos de la lista
     for(int i = eje_y; i<=50; i++){
-        mvprintw(i, x, "                                                              ");
+        mvprintw(i, x, "                                                              -");
     }
     while (actual != NULL) {
         // Imprime los valores del nodo actual
-        mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d, IR:%s", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC, actual->IR);
+        //mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d, IR:%s", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC, actual->IR);
+       mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d, UID:%d, IR:%s", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC, actual->UID, actual->IR);
 
         
         // Avanza al siguiente nodo
