@@ -568,7 +568,7 @@ void impresionPCB(struct PCB *pcb){
         mvprintw(5, 100, "KCPU: %d", pcb->KCPU);
 
 
-        mvprintw(0, 100, "KCPUxU:     ");
+        mvprintw(0, 100, "KCPUxU:           ");
         mvprintw(0, 100, "KCPUxU: %d", pcb->KCPUxU);
 
     refresh();
