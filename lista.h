@@ -364,7 +364,7 @@ void imprimir_listos(struct PCB *cabeza, int x, int eje_y) {
     }
     while (actual != NULL) {
         // Imprime los valores del nodo actual
-        mvprintw(eje_y, x, "UID:%d, Programa:%s, PID:[%d]", actual->UID, actual->fileName, actual->PID);
+        mvprintw(eje_y, x, "PID:%d, Programa:%s, UID:[%d]", actual->PID, actual->fileName, actual->UID);
         
         // Avanza al siguiente nodo
         actual = actual->sig;
@@ -383,7 +383,7 @@ void imprimir_terminados(struct PCB *cabeza, int x, int eje_y) {
     while (actual != NULL) {
         // Imprime los valores del nodo actual
         //mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d, IR:%s", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC, actual->IR);
-       mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d, UID:%d, IR:%s", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC, actual->UID, actual->IR);
+       mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d, UID:%d, IR:%s, KCPUxU:%d, KCPU:%d, P:%d", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC, actual->UID, actual->IR, actual->KCPUxU, actual->KCPU, actual->P);
 
         
         // Avanza al siguiente nodo
