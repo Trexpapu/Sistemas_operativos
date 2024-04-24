@@ -12,7 +12,7 @@
 char archivo[200];//variable global de archivo
 char numero_de_kill[200];
 int global_sleep = 500000; //espera para ver cada lectura del archivo
-#define maxQUANTUM 15 //cantidad máxima de lectura de lineas
+#define maxQUANTUM 5 //cantidad máxima de lectura de lineas
 int incCPU = 60 / maxQUANTUM; // Quantum por proceso (60/MAXQUANTUM).
 int PBase = 60; //Prioridad base para todos los procesos (60).
 int NumUs = 0; //Cantidad de usuarios para los cuales planificar (0).
@@ -331,11 +331,12 @@ int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quan
         //Actualiza los contadores de uso del CPU para el proceso en ejecución: KCPU = KCPU + IncCPU
         //Actualiza los contadores de uso del CPU para todos los procesos (no Terminados) del usuario dueño del proceso en ejecución: KCPUxU = KCPUxU + IncCPU
         (*ejecucion)->KCPU += incCPU;
+        (*ejecucion)->KCPUxU += incCPU;
         actualizarKCPUxU(listos, (*ejecucion)->UID, incCPU);
         (*ejecucion)->PC ++;
         (*quantum)++;
         impresionPCB(*ejecucion);
-        if (x != 0) { // Manejo de errores
+        if (x != 0) { // Cuando el archivo tiene un error lo tronamos con su respectivo error
             fclose(n_archivo);
             (*bandera) = 0;
             (*quantum) = 0;
@@ -354,12 +355,12 @@ int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quan
         (*programa_cargado) = 0;
         re_insert(listos, *ejecucion);
         kill(ejecucion, (*ejecucion)->PID);
-        //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
-        Actualizar_planificacion(listos, PBase, W);
-        if(contador_usuarios != 0){ ////////////////actualizar w al crear o terminar proceso
+        (*quantum) = 0;
+        if(contador_usuarios != 0){ ////////////////actualizar w eliminar un proceso de ejecucion
             W = 1.0 / (float)contador_usuarios;
         }
-        (*quantum) = 0;
+        //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
+        Actualizar_planificacion(listos, PBase, W);
     }
     return 0;
 }
@@ -382,17 +383,19 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
             if (retorno_kill != 0) {
                     mostrar_mensajes_ejecucion(1);//si no se encontro en ningun lado
                 
-            } else {//si se encontro en ejecucion
+            }else {//si se encontro en ejecucion
                 *bandera = 0;
                 *programa_cargado = 0;
                 mostrar_mensajes_ejecucion(2);
-                if(contador_usuarios != 0){ ////////////////actualizar w al crear o terminar proceso
+                if(contador_usuarios != 0){ ////////////////actualizar w eliminar un proceso de ejecucion
                     W = 1.0 / (float)contador_usuarios;
                 }
+                //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
+                Actualizar_planificacion(listos, PBase, W);
             }
         }else{//si se encontro en listos
             mostrar_mensajes_ejecucion(3);
-            if(contador_usuarios != 0){ ////////////////actualizar w al crear o terminar proceso
+            if(contador_usuarios != 0){ ////////////////actualizar w eliminar un proceso de listos
                 W = 1.0 / (float)contador_usuarios;
             }
         }
@@ -411,9 +414,11 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
         if (*bandera == 0) {
             push(terminados, *ejecucion);//push es para extraer de ejecucion a terminados
             *programa_cargado = 0;
-            if(contador_usuarios != 0){ ////////////////actualizar w al crear o terminar proceso
-                    W = 1.0 / (float)contador_usuarios;
-                }
+            if(contador_usuarios != 0){ ////////////////actualizar w eliminar un proceso de ejecucion
+                W = 1.0 / (float)contador_usuarios;
+            }
+            //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
+            Actualizar_planificacion(listos, PBase, W);
         }
     }
 }
