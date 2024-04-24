@@ -20,6 +20,7 @@ float W = 0.0; //Posteriormente (1/NumUsuarios)
 char UserID[40]; // se usa para la conversion atoi
 int copia_userID = 0; //se guarda la copia si el atoi es exitoso
 int contador_usuarios = 0;
+char UltimoComando[264];
 
 
 
@@ -95,6 +96,7 @@ int atiende_shell(char *comando, int *j, int *y) {
         if (comando[*j] == '\n') {//verificar si la tecla fue enter
             comando[*j] = '\0';//eliminar enter
             (*y)++; // Incrementar y para pasar a la siguiente línea
+            strcpy(UltimoComando, comando);
             return validar_comandos(comando);
             
             
@@ -131,6 +133,16 @@ int atiende_shell(char *comando, int *j, int *y) {
                     if (global_sleep > 100000){
                         global_sleep -= 100000;
                     }
+                }else if(comando[*j] == 65){
+
+                    comando[*j] = '\0';
+                    (*j)--;
+                    comando[*j] = '\0';
+                    (*j)--;
+                    comando[*j] = '\0';
+                    mvprintw(*y, 0, "                                                              ");
+                    strcpy(comando, UltimoComando);
+                    (*j) = strlen(UltimoComando);
                 }
             }
         }else{
@@ -428,7 +440,7 @@ void print_sleep_and_count(int contador_usuarios){
     mvprintw(28, 130, "sleep                  ");
     mvprintw(28, 130, "sleep %d", global_sleep);
     mvprintw(28, 160, "                 ");
-    mvprintw(28, 160, "Programas: %d", contador_usuarios);
+    mvprintw(28, 160, "Usuarios %d", contador_usuarios);
     mvprintw(28, 180, "         ");
     mvprintw(28, 180, "W: %.2f", W);
     refresh();
@@ -467,7 +479,7 @@ int main(void) {
 
         imprimir_ejecion(ejecucion, 140, 3);
         imprimir_listos(listos, 82, 35);
-        imprimir_terminados(terminados, 124, 35);
+        imprimir_terminados(terminados, 140, 35);
         print_sleep_and_count(contador_usuarios);
 
         manejar_procesos(&listos, &terminados, &ejecucion, &bandera, &programa_cargado, ejecucion_a_comandos, archivo_valido, retorno_kill);
@@ -478,6 +490,9 @@ int main(void) {
             }
 
         contador_de_usuarios(&listos, &ejecucion, &contador_usuarios);
+        if (contador_usuarios == 0){
+            W = 0;
+        }
         
         }
 
