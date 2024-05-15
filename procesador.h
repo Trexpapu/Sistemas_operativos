@@ -532,7 +532,6 @@ int validar_operaciones_de_archivo(struct PCB *pcb) {
 void impresionPCB(struct PCB *pcb){
     
 
-
         mvprintw(0, 85, "AX:     ");
         mvprintw(0, 85, "AX: %d", pcb->AX);
 
