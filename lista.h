@@ -71,6 +71,21 @@ void liberar_lista_terminados(struct PCB **cabeza) {
     *cabeza = NULL;
 }
 
+
+int kill_ejecucion(struct PCB **cabeza) {
+    // Verifica si la lista está vacía
+    if (*cabeza == NULL) {
+        return -1;
+    }
+
+    // Liberar el nodo en cabeza y establecer cabeza como NULL
+    free(*cabeza);
+    *cabeza = NULL;
+
+    return 0;
+}
+
+
 void re_insert(struct PCB **cabeza, struct PCB *ejecucion) {
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
@@ -85,6 +100,8 @@ void re_insert(struct PCB **cabeza, struct PCB *ejecucion) {
     // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
     if (*cabeza == NULL) {
         *cabeza = nuevoNodo;
+        kill_ejecucion(&ejecucion); 
+        refresh();
         return;
     }
 
@@ -96,6 +113,8 @@ void re_insert(struct PCB **cabeza, struct PCB *ejecucion) {
 
     // Enlazar el nuevo nodo después del último nodo
     ultimo->sig = nuevoNodo;
+    kill_ejecucion(&ejecucion); 
+    refresh();
 }
 
 
@@ -201,49 +220,47 @@ void push(struct PCB **cabeza, struct PCB *ejecucion) {
 
 int kill_push(struct PCB **cabeza, int pid, struct PCB **terminados){
 
-    if (*cabeza == NULL){//verficamos si la lista donde buscamos esta vacia
+    if (*cabeza == NULL){ // Verifica si la lista donde buscamos está vacía
         return -1;
     }
 
-    //vemos si el pid esta en el primer nodo
+    // Verifica si el PID está en el primer nodo
     if ((*cabeza)->PID == pid){
 
         // Crear un nuevo nodo de PCB
-            struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
-                if(nuevoNodo == NULL){
-                mvprintw(40, 5, "Error no se puedo reservar mas memoria...");
-                refresh();
-                return 3;
-                }
+        struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+        if(nuevoNodo == NULL){
+            mvprintw(40, 5, "Error no se pudo reservar más memoria...");
+            refresh();
+            return 3;
+        }
 
-            nuevoNodo = *cabeza;
-            nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
+        // Copia el primer nodo en el nuevo nodo
+        *nuevoNodo = **cabeza;
+        nuevoNodo->sig = NULL;
 
-            // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
-            if (*terminados == NULL) {
-                *terminados = nuevoNodo;
-                return 0;
-            }
-
-            // Buscar el último nodo de la lista
+        // Si la lista de terminados está vacía, el nuevo nodo se convierte en la cabeza
+        if (*terminados == NULL) {
+            *terminados = nuevoNodo;
+        } else {
+            // Busca el último nodo de la lista
             struct PCB *ultimo = *terminados;
             while (ultimo->sig != NULL) {
                 ultimo = ultimo->sig;
             }
 
-            // Enlazar el nuevo nodo después del último nodo
+            // Enlaza el nuevo nodo después del último nodo
             ultimo->sig = nuevoNodo;
+        }
 
-
-        //liberamos el nodo 
-        struct PCB *temp = *cabeza;//referencia al nodo a eliminar
-        *cabeza = (*cabeza)->sig; //avanzamos al siguiente nodo
+        // Elimina el primer nodo de la lista
+        struct PCB *temp = *cabeza;
+        *cabeza = (*cabeza)->sig;
         fclose(temp->programa);
-        free(temp); // Libera la memoria del nodo eliminado
+        free(temp);
+
         return 0;
     }
-
-
 
     // Busca el nodo con el PID dado
     struct PCB *actual = *cabeza;
@@ -257,77 +274,45 @@ int kill_push(struct PCB **cabeza, int pid, struct PCB **terminados){
     // Si se encontró el nodo con el PID dado
     if (actual != NULL) {
         anterior->sig = actual->sig; // Elimina el nodo ajustando los enlaces
-        
+
         // Crear un nuevo nodo de PCB
-            struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
-            if(nuevoNodo == NULL){
-                mvprintw(40, 5, "Error no se puedo reservar mas memoria...");
-                refresh();
-                return 3;
-                }
-            nuevoNodo = actual;
-            nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
+        struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+        if(nuevoNodo == NULL){
+            mvprintw(40, 5, "Error no se pudo reservar más memoria...");
+            refresh();
+            return 3;
+        }
 
-            // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
-            if (*terminados == NULL) {
-                *terminados = nuevoNodo;
-                return 0;
-            }
+        // Copia el nodo actual en el nuevo nodo
+        *nuevoNodo = *actual;
+        nuevoNodo->sig = NULL;
 
-            // Buscar el último nodo de la lista
+        // Si la lista de terminados está vacía, el nuevo nodo se convierte en la cabeza
+        if (*terminados == NULL) {
+            *terminados = nuevoNodo;
+        } else {
+            // Busca el último nodo de la lista
             struct PCB *ultimo = *terminados;
             while (ultimo->sig != NULL) {
                 ultimo = ultimo->sig;
             }
 
-            // Enlazar el nuevo nodo después del último nodo
+            // Enlaza el nuevo nodo después del último nodo
             ultimo->sig = nuevoNodo;
+        }
 
         fclose(actual->programa);
-        free(actual); // Libera la memoria del nodo eliminado
-        
+        free(actual);
+
     } else {
-        return -1;
+        return -1; // No se encontró el PID en la lista
     }
     return 0;
 }
 
 
 
-int kill(struct PCB **cabeza, int pid) {
-    // Verifica si la lista está vacía
-    if (*cabeza == NULL) {
-        return -1;
-    }
 
-    // Si el nodo a eliminar es el primer nodo
-    if ((*cabeza)->PID == pid) {
-        struct PCB *temp = *cabeza; // Guarda referencia al nodo a eliminar
-        *cabeza = (*cabeza)->sig; // Avanza la cabeza al siguiente nodo
-        free(temp); // Libera la memoria del nodo eliminado
-        return 0;
-    }
-
-    // Busca el nodo con el PID dado
-    struct PCB *actual = *cabeza;
-    struct PCB *anterior = NULL;
-
-    while (actual != NULL && actual->PID != pid) {
-        anterior = actual;
-        actual = actual->sig;
-    }
-
-    // Si se encontró el nodo con el PID dado
-    if (actual != NULL) {
-        anterior->sig = actual->sig; // Elimina el nodo ajustando los enlaces
-        free(actual); // Libera la memoria del nodo eliminado
-        
-    } else {
-        return -1;
-    }
-
-    return 0;
-}
 
 
 
@@ -352,6 +337,7 @@ void imprimir_ejecion(struct PCB *cabeza, int x, int eje_y) {
     }
     
     refresh(); // Refresca la pantalla
+    
 }
 
 
@@ -378,13 +364,14 @@ void imprimir_terminados(struct PCB *cabeza, int x, int eje_y) {
     
     // Itera sobre todos los nodos de la lista
     for(int i = eje_y; i<=50; i++){
-        mvprintw(i, x, "                                                                                                     -");
+        mvprintw(i, x, "                                                                 -");
     }
     while (actual != NULL) {
         // Imprime los valores del nodo actual
-       mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d, UID:%d, IR:%s, KCPUxU:%d, KCPU:%d, P:%d", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC, actual->UID, actual->IR, actual->KCPUxU, actual->KCPU, actual->P);
+        mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d, UID:%d", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC, actual->UID);
+        eje_y++;
+        mvprintw(eje_y, x, "KCPUxU:%d, KCPU:%d, P:%d, IR:%s",  actual->KCPUxU, actual->KCPU, actual->P, actual->IR);
 
-        
         // Avanza al siguiente nodo
         actual = actual->sig;
         eje_y++; // Incrementa la fila de impresión
