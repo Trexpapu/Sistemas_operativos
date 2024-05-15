@@ -120,7 +120,7 @@ int atiende_shell(char *comando, int *j, int *y) {
                     (*j)--;
                     comando[*j] = '\0';
                     mvprintw(*y, 0, "                                                              ");
-                    if (global_sleep < 800000){
+                    if (global_sleep < 1800000){
                         global_sleep += 100000;
                     }
                 }else if(comando[*j] == 68){//flecha izquierda
@@ -324,7 +324,7 @@ void mostrar_mensajes_ejecucion(int opcion){
         break;
     case 3:
         mvprintw(ejey, ejex, "                                                                                                               ");
-        mvprintw(ejey, ejex, "Se eliminó el proceso con el PID: %s ", numero_de_kill);
+        mvprintw(ejey, ejex, "Se eliminó el proceso de listos con el PID: %s ", numero_de_kill);
         break;
     
 
@@ -333,6 +333,14 @@ void mostrar_mensajes_ejecucion(int opcion){
     refresh();            
 
 }
+
+void Actualizar_W(){
+    if(contador_usuarios != 0){ ////////////////actualizar w al crear o terminar proceso
+            W = 1.0 / (float)contador_usuarios;
+        }
+    refresh();
+}
+
 
 int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quantum, int *programa_cargado, struct PCB **listos) {
     int x = 0; // Recibe el retorno de operaciones de archivo
@@ -366,11 +374,9 @@ int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quan
         (*bandera) = 0;
         (*programa_cargado) = 0;
         re_insert(listos, *ejecucion);
-        kill(ejecucion, (*ejecucion)->PID);
+        
         (*quantum) = 0;
-        if(contador_usuarios != 0){ ////////////////actualizar w eliminar un proceso de ejecucion
-            W = 1.0 / (float)contador_usuarios;
-        }
+        Actualizar_W();
         //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
         Actualizar_planificacion(listos, PBase, W);
     }
@@ -382,9 +388,7 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
     if (ejecucion_a_comandos == 200) {
         strcpy(archivo_valido, archivo);
         insert(listos, archivo_valido, PBase, copia_userID);
-        if(contador_usuarios != 0){ ////////////////actualizar w al crear o terminar proceso
-            W = 1.0 / (float)contador_usuarios;
-        }
+        Actualizar_W();
         
 
     } else if (ejecucion_a_comandos == 237) {//si se ejecuta el kill
@@ -399,24 +403,19 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
                 *bandera = 0;
                 *programa_cargado = 0;
                 mostrar_mensajes_ejecucion(2);
-                if(contador_usuarios != 0){ ////////////////actualizar w eliminar un proceso de ejecucion
-                    W = 1.0 / (float)contador_usuarios;
-                }
+                Actualizar_W();
                 //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
                 Actualizar_planificacion(listos, PBase, W);
             }
         }else{//si se encontro en listos
             mostrar_mensajes_ejecucion(3);
-            if(contador_usuarios != 0){ ////////////////actualizar w eliminar un proceso de listos
-                W = 1.0 / (float)contador_usuarios;
-            }
+            Actualizar_W();
         }
     }
 
     if (*programa_cargado == 0) {
         *ejecucion = pull(listos);//pull es para extraccion a ejecucion
         if (*ejecucion != NULL) {
-            impresionPCB(*ejecucion);
             *programa_cargado = 1;
             *bandera = 1;
         }
@@ -426,9 +425,7 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
         if (*bandera == 0) {
             push(terminados, *ejecucion);//push es para extraer de ejecucion a terminados
             *programa_cargado = 0;
-            if(contador_usuarios != 0){ ////////////////actualizar w eliminar un proceso de ejecucion
-                W = 1.0 / (float)contador_usuarios;
-            }
+            Actualizar_W();
             //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
             Actualizar_planificacion(listos, PBase, W);
         }
@@ -436,7 +433,7 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
 }
 
 
-void print_sleep_and_count(int contador_usuarios){
+void printData(int contador_usuarios){
     mvprintw(28, 130, "sleep                  ");
     mvprintw(28, 130, "sleep %d", global_sleep);
     mvprintw(28, 160, "                 ");
@@ -465,6 +462,7 @@ int main(void) {
     int retorno_kill = 0;//este sirve para  recibir el valor retornado por kill
     char archivo_valido[200];//variable que recibe valores de la variable global archivo
 
+
     
     
     initscr();
@@ -480,14 +478,14 @@ int main(void) {
         imprimir_ejecion(ejecucion, 140, 3);
         imprimir_listos(listos, 82, 35);
         imprimir_terminados(terminados, 140, 35);
-        print_sleep_and_count(contador_usuarios);
+        printData(contador_usuarios);
 
         manejar_procesos(&listos, &terminados, &ejecucion, &bandera, &programa_cargado, ejecucion_a_comandos, archivo_valido, retorno_kill);
-
         if (bandera==1){//si bandera es 1 entonces podemos seguir leyendo el archivo
             usleep(global_sleep); //espera para ver cada lectura del archivo
             leer_lineas(&ejecucion, &bandera, ejecucion->programa, &quantum, &programa_cargado, &listos);        
             }
+        
 
         contador_de_usuarios(&listos, &ejecucion, &contador_usuarios);
         if (contador_usuarios == 0){
