@@ -5,15 +5,18 @@
 #include <unistd.h>
 #include <ctype.h> // Para la función toupper
 #include <stdlib.h>
+
 struct PCB
 {
-    char IR[100];
+    char IR[32];
     int AX;
     int BX;
     int CX;
     int DX;
     int PC;
     int PID;
+    int TMP[4096]; // Tabla de Mapas de Procesos
+    int TmpSize; // Total de lineas en el archivo / 16, si hay decimales o residuo, se suma uno al resultado entero (función techo).
     char fileName[256];
     FILE *programa; //puntero a un archivo
     int UID; //User IDentifier (Identificador de usuario).
@@ -570,6 +573,18 @@ void impresionPCB(struct PCB *pcb){
         mvprintw(0, 100, "KCPUxU:           ");
         mvprintw(0, 100, "KCPUxU: %d", pcb->KCPUxU);
 
+        mvprintw(28, 85, "TmpSize:    ");
+        mvprintw(28, 85, "TmpSize:%d", pcb->TmpSize);
+
+
+        // Imprimir valores de la TMP
+        mvprintw(28, 100, "TMP:                ");
+        int x = 100;
+        for (int i = 0; i < pcb->TmpSize; i++) {
+            mvprintw(28, x+5, "%03X", pcb->TMP[i]);
+            x+=5;
+        }
+
     refresh();
 }
 
@@ -600,6 +615,10 @@ void prints_procesador(){
         mvprintw(15, 85, "DX:       ");
 
         mvprintw(25, 85, "PID:      ");
+
+        mvprintw(28, 85, "TmpSize:    ");
+
+        mvprintw(28, 100, "TMP:         ");
 
         mvprintw(15, 100, "UID:     ");
 
