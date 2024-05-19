@@ -7,6 +7,102 @@
 
 int P_count = 1;
 
+
+
+int kill_push(struct PCB **cabeza, int pid, struct PCB **terminados){
+
+    if (*cabeza == NULL){ // Verifica si la lista donde buscamos está vacía
+        return -1;
+    }
+
+    // Verifica si el PID está en el primer nodo
+    if ((*cabeza)->PID == pid){
+
+        // Crear un nuevo nodo de PCB
+        struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+        if(nuevoNodo == NULL){
+            mvprintw(40, 5, "Error no se pudo reservar más memoria...");
+            refresh();
+            return 3;
+        }
+
+        // Copia el primer nodo en el nuevo nodo
+        *nuevoNodo = **cabeza;
+        nuevoNodo->sig = NULL;
+
+        // Si la lista de terminados está vacía, el nuevo nodo se convierte en la cabeza
+        if (*terminados == NULL) {
+            *terminados = nuevoNodo;
+        } else {
+            // Busca el último nodo de la lista
+            struct PCB *ultimo = *terminados;
+            while (ultimo->sig != NULL) {
+                ultimo = ultimo->sig;
+            }
+
+            // Enlaza el nuevo nodo después del último nodo
+            ultimo->sig = nuevoNodo;
+        }
+
+        // Elimina el primer nodo de la lista
+        struct PCB *temp = *cabeza;
+        *cabeza = (*cabeza)->sig;
+        fclose(temp->programa);
+        free(temp);
+
+        return 0;
+    }
+
+    // Busca el nodo con el PID dado
+    struct PCB *actual = *cabeza;
+    struct PCB *anterior = NULL;
+
+    while (actual != NULL && actual->PID != pid) {
+        anterior = actual;
+        actual = actual->sig;
+    }
+
+    // Si se encontró el nodo con el PID dado
+    if (actual != NULL) {
+        anterior->sig = actual->sig; // Elimina el nodo ajustando los enlaces
+
+        // Crear un nuevo nodo de PCB
+        struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+        if(nuevoNodo == NULL){
+            mvprintw(40, 5, "Error no se pudo reservar más memoria...");
+            refresh();
+            return 3;
+        }
+
+        // Copia el nodo actual en el nuevo nodo
+        *nuevoNodo = *actual;
+        nuevoNodo->sig = NULL;
+
+        // Si la lista de terminados está vacía, el nuevo nodo se convierte en la cabeza
+        if (*terminados == NULL) {
+            *terminados = nuevoNodo;
+        } else {
+            // Busca el último nodo de la lista
+            struct PCB *ultimo = *terminados;
+            while (ultimo->sig != NULL) {
+                ultimo = ultimo->sig;
+            }
+
+            // Enlaza el nuevo nodo después del último nodo
+            ultimo->sig = nuevoNodo;
+        }
+
+        fclose(actual->programa);
+        free(actual);
+
+    } else {
+        return -1; // No se encontró el PID en la lista
+    }
+    return 0;
+}
+
+
+
 struct PCB* pull(struct PCB **cabeza) {
     // Verifica si la lista está vacía
     if (*cabeza == NULL) {
@@ -149,7 +245,7 @@ void Actualizar_planificacion(struct PCB **cabeza, int PBase, float W) {
 
 
 // Función para crear un nuevo nodo de PCB y agregar el nombre del programa al inicio de la lista
-void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id) {
+void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id, struct PCB **nuevos, struct PCB **terminados, int *Mapa, int tamano) {
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
     if(nuevoNodo == NULL){
@@ -172,20 +268,111 @@ void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id) {
     nuevoNodo->UID = user_id;
     nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
-    // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
-    if (*cabeza == NULL) {
-        *cabeza = nuevoNodo;
-        return;
-    }
 
-    // Buscar el último nodo de la lista
-    struct PCB *ultimo = *cabeza;
-    while (ultimo->sig != NULL) {
-        ultimo = ultimo->sig;
-    }
+    //calcular tmpSize
+    int contador = 0;
+    char buffer[1024]; // Tamaño del buffer para leer líneas
+    FILE *archivo = fopen(nombrePrograma, "r");
 
-    // Enlazar el nuevo nodo después del último nodo
-    ultimo->sig = nuevoNodo;
+    // Leer línea por línea hasta el final del archivo
+    while (fgets(buffer, sizeof(buffer), archivo) != NULL) {
+        contador++;
+    }
+    nuevoNodo->TmpSize = contador / 16;
+    if (contador % 16 != 0) { // Verifica si hay un residuo
+        nuevoNodo->TmpSize++; // Incrementa en uno si hay un residuo
+    }
+    fclose(archivo);
+
+    if(nuevoNodo->TmpSize <= 4096){//si cabe en swap
+        //hay disponible en la swap?
+        int contadorDeCeros = nuevoNodo->TmpSize;
+        for (int i = 0; i < tamano; i++){
+            if(Mapa[i] == 0){
+                contadorDeCeros --;
+                if(contadorDeCeros <= 0){
+                    break;
+                }
+            }
+        }//despues del bucle si contadorceros es menor a cero si hay espacio en swap
+        if(contadorDeCeros <= 0){//si hay espacio en swap actualmente
+            int ContadorCeros2 = nuevoNodo->TmpSize;
+            int j = 0;
+            for (int i = 0; i< tamano;i++){
+                if(Mapa[i] == 0){ //si esta libre
+                    Mapa[i] = nuevoNodo->PID; // ponemos el pid en el tms
+                    nuevoNodo->TMP[j] = i; //ponemos las direcciones reales en el TMP
+                    ContadorCeros2--;
+                    j++;
+                    if(ContadorCeros2 <= 0){
+                        break;
+                    }
+                }
+            }
+            //pasarlo a listos
+            
+            // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
+            if (*cabeza == NULL) {
+                *cabeza = nuevoNodo;
+                return;
+            }
+
+            // Buscar el último nodo de la lista
+            struct PCB *ultimo = *cabeza;
+            while (ultimo->sig != NULL) {
+                ultimo = ultimo->sig;
+            }
+
+            // Enlazar el nuevo nodo después del último nodo
+            ultimo->sig = nuevoNodo;
+
+
+
+        }else{//no hay espacio en swap actualmente pasarlo a nuevos
+            // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
+            if (*nuevos == NULL) {
+                *nuevos = nuevoNodo;
+                return;
+            }
+
+            // Buscar el último nodo de la lista
+            struct PCB *ultimo = *nuevos;
+            while (ultimo->sig != NULL) {
+                ultimo = ultimo->sig;
+            }
+
+            // Enlazar el nuevo nodo después del último nodo
+            ultimo->sig = nuevoNodo;
+        }
+        
+
+
+
+    }else{//no cabe, mandar directo a terminados
+
+        // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
+        if (*terminados == NULL) {
+            *terminados = nuevoNodo;
+            return;
+        }
+
+        // Buscar el último nodo de la lista
+        struct PCB *ultimo = *terminados;
+        while (ultimo->sig != NULL) {
+            ultimo = ultimo->sig;
+        }
+
+        // Enlazar el nuevo nodo después del último nodo
+        ultimo->sig = nuevoNodo;
+
+        int ejey = 40;
+        int ejex = 1;
+        mvprintw(ejey, ejex, "                                                                 ");
+        mvprintw(ejey, ejex, "No hay espacio suficiente en la SWAP");
+        refresh();
+
+
+    }
 }
 
 
@@ -218,98 +405,6 @@ void push(struct PCB **cabeza, struct PCB *ejecucion) {
 
 
 
-int kill_push(struct PCB **cabeza, int pid, struct PCB **terminados){
-
-    if (*cabeza == NULL){ // Verifica si la lista donde buscamos está vacía
-        return -1;
-    }
-
-    // Verifica si el PID está en el primer nodo
-    if ((*cabeza)->PID == pid){
-
-        // Crear un nuevo nodo de PCB
-        struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
-        if(nuevoNodo == NULL){
-            mvprintw(40, 5, "Error no se pudo reservar más memoria...");
-            refresh();
-            return 3;
-        }
-
-        // Copia el primer nodo en el nuevo nodo
-        *nuevoNodo = **cabeza;
-        nuevoNodo->sig = NULL;
-
-        // Si la lista de terminados está vacía, el nuevo nodo se convierte en la cabeza
-        if (*terminados == NULL) {
-            *terminados = nuevoNodo;
-        } else {
-            // Busca el último nodo de la lista
-            struct PCB *ultimo = *terminados;
-            while (ultimo->sig != NULL) {
-                ultimo = ultimo->sig;
-            }
-
-            // Enlaza el nuevo nodo después del último nodo
-            ultimo->sig = nuevoNodo;
-        }
-
-        // Elimina el primer nodo de la lista
-        struct PCB *temp = *cabeza;
-        *cabeza = (*cabeza)->sig;
-        fclose(temp->programa);
-        free(temp);
-
-        return 0;
-    }
-
-    // Busca el nodo con el PID dado
-    struct PCB *actual = *cabeza;
-    struct PCB *anterior = NULL;
-
-    while (actual != NULL && actual->PID != pid) {
-        anterior = actual;
-        actual = actual->sig;
-    }
-
-    // Si se encontró el nodo con el PID dado
-    if (actual != NULL) {
-        anterior->sig = actual->sig; // Elimina el nodo ajustando los enlaces
-
-        // Crear un nuevo nodo de PCB
-        struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
-        if(nuevoNodo == NULL){
-            mvprintw(40, 5, "Error no se pudo reservar más memoria...");
-            refresh();
-            return 3;
-        }
-
-        // Copia el nodo actual en el nuevo nodo
-        *nuevoNodo = *actual;
-        nuevoNodo->sig = NULL;
-
-        // Si la lista de terminados está vacía, el nuevo nodo se convierte en la cabeza
-        if (*terminados == NULL) {
-            *terminados = nuevoNodo;
-        } else {
-            // Busca el último nodo de la lista
-            struct PCB *ultimo = *terminados;
-            while (ultimo->sig != NULL) {
-                ultimo = ultimo->sig;
-            }
-
-            // Enlaza el nuevo nodo después del último nodo
-            ultimo->sig = nuevoNodo;
-        }
-
-        fclose(actual->programa);
-        free(actual);
-
-    } else {
-        return -1; // No se encontró el PID en la lista
-    }
-    return 0;
-}
-
 
 
 
@@ -326,10 +421,28 @@ void prints_titulos(){
 
 
 
+void imprimir_nuevos(struct PCB *cabeza, int x, int y){
+    struct PCB *actual = cabeza;
+    // Itera sobre todos los nodos de la lista
+    for(int i = y; i<=y+40; i++){
+            mvprintw(i, x, "                                                                 -");
+    }
+    while (actual != NULL) {
+        // Imprime los valores del nodo actual
+        mvprintw(y, x, "PID:%d, Programa:%s, UID:[%d]", actual->PID, actual->fileName, actual->UID);
+        
+        // Avanza al siguiente nodo
+        actual = actual->sig;
+        y++; // Incrementa la fila de impresión
+    }
+    refresh(); // Refresca la pantalla
+
+
+}
+
 void imprimir_ejecion(struct PCB *cabeza, int x, int eje_y) {
     struct PCB *primerNodo = cabeza; // Guarda referencia al primer nodo
     
-    mvprintw(eje_y, x, "                                                              -");
     
     if (primerNodo != NULL) {
         // Imprime los valores del primer nodo
@@ -345,7 +458,7 @@ void imprimir_listos(struct PCB *cabeza, int x, int eje_y) {
     struct PCB *actual = cabeza; // Inicia desde la cabeza de la lista
     
     // Itera sobre todos los nodos de la lista
-    for(int i = eje_y; i<=55; i++){
+    for(int i = eje_y; i<=eje_y+45; i++){
             mvprintw(i, x, "                                                        -");
     }
     while (actual != NULL) {
@@ -363,14 +476,18 @@ void imprimir_terminados(struct PCB *cabeza, int x, int eje_y) {
     struct PCB *actual = cabeza; // Inicia desde la cabeza de la lista
     
     // Itera sobre todos los nodos de la lista
-    for(int i = eje_y; i<=50; i++){
+    for(int i = eje_y; i<=eje_y+45; i++){
         mvprintw(i, x, "                                                                 -");
     }
     while (actual != NULL) {
         // Imprime los valores del nodo actual
         mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d, UID:%d", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC, actual->UID);
         eje_y++;
-        mvprintw(eje_y, x, "KCPUxU:%d, KCPU:%d, P:%d, IR:%s",  actual->KCPUxU, actual->KCPU, actual->P, actual->IR);
+        mvprintw(eje_y, x, "KCPUxU:%d, KCPU:%d, P:%d, IR:", actual->KCPUxU, actual->KCPU, actual->P);
+        // Imprime los caracteres de IR uno a uno
+        for (int i = 0; actual->IR[i] != '\0'; i++) {
+            addch(actual->IR[i]);
+        }
 
         // Avanza al siguiente nodo
         actual = actual->sig;
