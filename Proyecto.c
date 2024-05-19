@@ -6,7 +6,7 @@
 #include "kbhit.h"
 #include "procesador.h"
 #include "lista.h"
-
+#include "CrearSwap.h"
 //SECCION DE VARIABLES GLOBALES
 
 char archivo[200];//variable global de archivo
@@ -21,6 +21,12 @@ char UserID[40]; // se usa para la conversion atoi
 int copia_userID = 0; //se guarda la copia si el atoi es exitoso
 int contador_usuarios = 0;
 char UltimoComando[264];
+FILE *file;
+const char *filename = "SWAP.bin";
+
+#define TOTAL_MARCOS 4096 // 65536 instrucciones / 16 instrucciones por marco
+
+int Mapa[TOTAL_MARCOS];
 
 
 
@@ -75,6 +81,18 @@ int validar_comandos(char *comando){
                         return 10;
                     }else if(strcmp(accion, "kill") == 0){
                         return 437;//kill necesita un numero entero como parametro
+
+                    }else if(strcmp(accion, "sig") == 0){
+                        return 188;//cambiar la paginacion de swap
+
+                    }else if(strcmp(accion, "ant") == 0){
+                        return 189;//cambiar la paginacion de swap
+
+                    }else if(strcmp(accion, "tmsd") == 0){
+                        return 663;//cambiar la paginacion de swap
+
+                    }else if(strcmp(accion, "tmsa") == 0){
+                        return 664;//cambiar la paginacion de swap
 
                     }else{
                         return 400;// printf("comando no reconocido\n");
@@ -167,7 +185,7 @@ int atiende_shell(char *comando, int *j, int *y) {
 
 
 void prints(int *y, char *comando){
-    for (int i = 0; i < 300; i++) {
+    for (int i = 0; i < 400; i++) {
         mvprintw(30, i, "*");
         mvprintw(i, 80, "*");
     }
@@ -197,6 +215,25 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 break;
 
+            case 188:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Paginacón hacia delante SWAP");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                return 188;
+                break;
+
+            case 189:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Paginacón hacia atras SWAP");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                return 189;
+                break;
+
+
             case 237: //se puede ejecutar el kill
                 mvprintw(ejey, ejex, "                                                                                                               ");
                 mvprintw(ejey, ejex, "Comando ejecutado exitosamente");
@@ -205,6 +242,25 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 mvprintw((*y), 0, "PROMPT > %s", comando);
                 return 237;
                 break;
+
+            case 663:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Paginación hacia delante TMS");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                return 663;
+                break;
+
+            case 664:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Paginación hacia atras TMS");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                return 664;
+                break;
+
 
                 
             case 405:
@@ -308,6 +364,33 @@ void mostrar_errores_de_archivo(struct PCB *ejecucion, int opcion){
     
 }
 
+void MensajesAlCrearSwap(int opcion){
+    int ejey = 40;
+    int ejex = 1;
+    switch (opcion){
+        case 0:
+        mvprintw(ejey, ejex, "                                                                                                               ");
+        mvprintw(ejey, ejex, "SWAP abierto");
+        break;
+        case 201:
+        mvprintw(ejey, ejex, "                                                                                                               ");
+        mvprintw(ejey, ejex, "El archivo SWAP se creo con exito!");
+        break;
+        case -205:
+        mvprintw(ejey, ejex, "                                                                                                               ");
+        mvprintw(ejey, ejex, "Hubo un error al abrir o crear el archivo SWAP");
+        break;
+        case -206:
+        mvprintw(ejey, ejex, "                                                                                                               ");
+        mvprintw(ejey, ejex, "Hubo un error al escribir en el archivo SWAP");
+        break;
+
+    }
+    refresh();
+}
+
+
+
 void mostrar_mensajes_ejecucion(int opcion){
     int ejey = 40;
     int ejex = 1;
@@ -374,20 +457,22 @@ int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quan
         (*bandera) = 0;
         (*programa_cargado) = 0;
         re_insert(listos, *ejecucion);
-        
         (*quantum) = 0;
         Actualizar_W();
         //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
         Actualizar_planificacion(listos, PBase, W);
+        //limpieza de
+
     }
     return 0;
 }
 
 
-void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB **ejecucion, int *bandera, int *programa_cargado, int ejecucion_a_comandos, char archivo_valido[200], int retorno_kill) {
+void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB **ejecucion,struct PCB **nuevos, int *bandera, int *programa_cargado, int ejecucion_a_comandos, char archivo_valido[200], int retorno_kill) {
     if (ejecucion_a_comandos == 200) {
         strcpy(archivo_valido, archivo);
-        insert(listos, archivo_valido, PBase, copia_userID);
+        int tamano = sizeof(Mapa) / sizeof(Mapa[0]);
+        insert(listos, archivo_valido, PBase, copia_userID, nuevos, terminados, Mapa, tamano);
         Actualizar_W();
         
 
@@ -414,6 +499,9 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
     }
 
     if (*programa_cargado == 0) {
+        //limpiando ejecucion
+        mvprintw(3, 140, "                                                                 -");
+        refresh();
         *ejecucion = pull(listos);//pull es para extraccion a ejecucion
         if (*ejecucion != NULL) {
             *programa_cargado = 1;
@@ -433,20 +521,130 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
 }
 
 
-void printData(int contador_usuarios){
+void printData(int contador_usuarios, int limite, int limiteTMS){
     mvprintw(28, 130, "sleep                  ");
     mvprintw(28, 130, "sleep %d", global_sleep);
     mvprintw(28, 160, "                 ");
     mvprintw(28, 160, "Usuarios %d", contador_usuarios);
     mvprintw(28, 180, "         ");
-    mvprintw(28, 180, "W: %.2f", W);
+    mvprintw(28, 180, "LimiteSwap: %d", limite);
+    mvprintw(28, 190, "                   ");
+    mvprintw(28, 190, "LimiteSwap: %d", limite);
+    mvprintw(28, 210, "                   ");
+    mvprintw(28, 210, "LimiteTMS: %d", limiteTMS);
+
     refresh();
 }
 
+int abrirSwap(){
+    // Abrir el archivo en modo binario para escritura
+    file = fopen(filename, "r+b");
+    if (file == NULL) {
+        return -205;
+    }
+    return 0;
+}
+
+void cerrarSwap() {
+    if (file != NULL) {
+        fclose(file);
+        file = NULL;
+        printf("Swap cerrado\n");
+    }
+}
+
+int ImprimirDatosSwap(int opcion, int *referencia) { //pendiente asignar mensajes de error
+    // Abrir el archivo en modo binario para lectura
+    if (file == NULL) {
+        //perror("El archivo no está abierto");
+        return 404;
+    }
+
+    // Obtener el tamaño del archivo
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET); // Volver al inicio del archivo
+
+    // Reservar memoria para el buffer
+    char *buffer = (char *)malloc(file_size);
+    if (buffer == NULL) {
+        //perror("Error al asignar memoria");
+        return 405;
+    }
+
+    // Leer el contenido del archivo en el buffer
+    if (fread(buffer, sizeof(char), file_size, file) != file_size) {
+        //perror("Error al leer del archivo");
+        free(buffer);
+        return 406;
+    }
+    if(opcion == 188 && (*referencia) < TOTAL_MARCOS){ // ese numero es 16 * 4096 = 65536... opcion de avance
+        (*referencia) += 96;
+    }else if(opcion == 189 && (*referencia) >=96){ // si la referencia esta despues de la cantidad de marcos disponibles para ver... opcion de retroceso
+        (*referencia) -= 96;
+    }
+
+    // Imprimir el contenido del buffer en columnas de 16 filas cada una
+    int x = 210; // el eje x en la pantalla
+    int encabezado = 34; // de donde empieza a imprimir en la pantalla
+    int j = 0;//salto de linea para imprimir las filas
+    int final = (*referencia) + 96; //96 para mostrar 6 marcos
+    
+    
+    for (long i = (*referencia); i < final; i++) {
+        mvprintw(encabezado+j, x, "[%04X]", i);
+        if ((unsigned char)buffer[i] != 0){//mostrar solo los datos que no sean cero 
+            mvprintw(encabezado+j, x+8, "%02x ", (unsigned char)buffer[i]);
+
+        }
+        j++;
+        if ((i + 1) % 16 == 0) {
+            x+=20;//movemos derecha
+            encabezado = 34; //reiniciamos el punto del encabezado
+            j = 0; //reiniciamos el punto para los saltos de linea
+            mvprintw(encabezado+j, x, "\n");
+
+        }
+       
+    }
+
+    // Limpiar y liberar memoria
+    refresh();
+    free(buffer);
+    return 0; //todo salio bien
+}
+
+void ImprimirDatosTMS(int opcion, int *referencia){
+    if(opcion == 663 && (*referencia) < TOTAL_MARCOS){ //tms hacia delante
+        (*referencia) += 16;
+    }else if(opcion == 664 && (*referencia) >=16){
+        (*referencia) -= 16;
+    }
+
+    int x = 250; // el eje x en la pantalla
+    int encabezado = 5; // de donde empieza a imprimir en la pantalla
+    int j = 0;//salto de linea para imprimir las filas
+    int final = (*referencia) + 16; //96 para mostrar 6 marcos
+    for (long i = (*referencia); i < final; i++){
+        mvprintw(encabezado+j, x, "[%03X]-%d", i, Mapa[i]);
+        j++;
+
+    }
+
+}
+
+
+
+void InicializarMapa(){
+    for (int i = 0; i < TOTAL_MARCOS; i++) {
+    Mapa[i] = 0;
+}
+}
 
 int main(void) {
     struct PCB *listos = NULL; // Lista de nodos en espera por ser ejecutados
     struct PCB *terminados = NULL; //lista de nodos terminados
+    struct PCB *nuevos = NULL; // lista de nodos nuevos
     struct PCB *ejecucion = malloc(sizeof(struct PCB));//nodo unico en ejecucion
     int quantum = 0;
     
@@ -461,7 +659,8 @@ int main(void) {
     int programa_cargado = 0;//variable de control para realizar pull y push
     int retorno_kill = 0;//este sirve para  recibir el valor retornado por kill
     char archivo_valido[200];//variable que recibe valores de la variable global archivo
-
+    int UltimoPuntoEnSwap = 0;
+    int UltimoPuntoEnTMS = 0;
 
     
     
@@ -469,18 +668,27 @@ int main(void) {
     prints(&nivel_de_prompt, comando);
     prints_procesador();
     prints_titulos();
+    ZonaSwap();
+    MensajesAlCrearSwap(CrearArhivoSwap());
+    MensajesAlCrearSwap(abrirSwap()); 
+    ZonaTMS();
+    InicializarMapa();
+
     
     while (recibe_valores != 10) {
+        
 
         recibe_valores = atiende_shell(comando, &posicion_de_char, &nivel_de_prompt);
         ejecucion_a_comandos = mostrar_respuesta_a_comandos(recibe_valores, comando, &posicion_de_char, &nivel_de_prompt);
-
+        ImprimirDatosSwap(ejecucion_a_comandos, &UltimoPuntoEnSwap);
+        ImprimirDatosTMS(ejecucion_a_comandos, &UltimoPuntoEnTMS);
         imprimir_ejecion(ejecucion, 140, 3);
         imprimir_listos(listos, 82, 35);
         imprimir_terminados(terminados, 140, 35);
-        printData(contador_usuarios);
+        imprimir_nuevos(nuevos, 1, 60);
+        printData(contador_usuarios, UltimoPuntoEnSwap, UltimoPuntoEnTMS);
 
-        manejar_procesos(&listos, &terminados, &ejecucion, &bandera, &programa_cargado, ejecucion_a_comandos, archivo_valido, retorno_kill);
+        manejar_procesos(&listos, &terminados, &ejecucion, &nuevos,  &bandera, &programa_cargado, ejecucion_a_comandos, archivo_valido, retorno_kill);
         if (bandera==1){//si bandera es 1 entonces podemos seguir leyendo el archivo
             usleep(global_sleep); //espera para ver cada lectura del archivo
             leer_lineas(&ejecucion, &bandera, ejecucion->programa, &quantum, &programa_cargado, &listos);        
@@ -502,6 +710,7 @@ int main(void) {
     liberar_listos(&listos);
     liberar_lista_terminados(&terminados);
     printf("Después de liberar recursos: ejecucion=%p, listos=%p, terminados=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados);
+    cerrarSwap();
 
     return 0;
 }
