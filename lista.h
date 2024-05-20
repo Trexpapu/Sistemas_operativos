@@ -6,14 +6,33 @@
 #include <stdlib.h>
 
 int P_count = 1;
+#define TOTAL_MARCOS  4096 // 65536 instrucciones / 16 instrucciones por marco
+
+int Mapa[TOTAL_MARCOS]; // tms
+int tamano = sizeof(Mapa) / sizeof(Mapa[0]);
+
+FILE *file;
+const char *filename = "SWAP.bin";
+
+
+void QuitarPidDelTMS(int pid){
+    for (int i = 0; i < tamano; i++){
+        if (Mapa[i] == pid){
+            Mapa[i] = 0;
+        }
+    }
+}
+
 
 
 
 int kill_push(struct PCB **cabeza, int pid, struct PCB **terminados){
 
+
     if (*cabeza == NULL){ // Verifica si la lista donde buscamos está vacía
         return -1;
     }
+    QuitarPidDelTMS(pid);
 
     // Verifica si el PID está en el primer nodo
     if ((*cabeza)->PID == pid){
@@ -153,6 +172,21 @@ void liberar_listos(struct PCB **cabeza) {
 }
 
 
+void liberar_nuevos(struct PCB **cabeza) {
+    struct PCB *actual = *cabeza;
+    struct PCB *temp;
+
+    while (actual != NULL) {
+        temp = actual; // Guarda una referencia al nodo actual
+        actual = actual->sig; // Avanza al siguiente nodo
+        fclose(temp->programa); // Cierra el archivo asociado al nodo actual
+        free(temp); // Libera la memoria del nodo actual
+    }
+
+    // Establece la cabeza de la lista como NULL
+    *cabeza = NULL;
+}
+
 void liberar_lista_terminados(struct PCB **cabeza) {
     struct PCB *actual = *cabeza;
     struct PCB *temp;
@@ -243,9 +277,122 @@ void Actualizar_planificacion(struct PCB **cabeza, int PBase, float W) {
     }
 }
 
+// Función para cargar el contenido del programa en el archivo SWAP
+void CargarSwap(struct PCB *nodo) {
+    // Abre el archivo del programa en modo lectura
+    char NombrePrograma[256];
+    strcpy(NombrePrograma, nodo->fileName);
+    FILE *programa = fopen(NombrePrograma, "r");
+    if (programa == NULL) {
+        return;
+    }
+
+
+    char linea[256];
+    int PC = 0;
+
+    // Leer cada línea del archivo del programa
+    while (fgets(linea, sizeof(linea), programa) != NULL) {
+        // Calcular el marco y el desplazamiento
+        int marco = PC / 16;
+        int offset = PC % 16;
+        //int DRS = (marco << 4) | offset;
+        int marco_swap = nodo->TMP[marco];
+        int tamano_marco = 16;
+        int desplazamiento_real = (marco_swap * tamano_marco + offset) * 32;
+
+        // Dividir la línea en instrucciones de 32 caracteres
+        int instrucciones = strlen(linea) / 32 + (strlen(linea) % 32 != 0);
+        for (int i = 0; i < instrucciones; i++) {
+            char instruccion[33]; // Buffer para una instrucción de 32 caracteres + terminador nulo
+            strncpy(instruccion, linea + i * 32, 32); // Copiar la instrucción
+            instruccion[32] = '\0'; // Agregar terminador nulo si es necesario
+            int len = strlen(instruccion);
+            if (len < 32) {
+                // Completar la instrucción con caracteres nulos si es necesario
+                memset(instruccion + len, '\0', 32 - len);
+            }
+            
+            // Escribir la instrucción en el archivo de intercambio
+            fseek(file, desplazamiento_real + i * 32, SEEK_SET);
+            fwrite(instruccion, sizeof(char), 32, file);
+        }
+
+        PC++;
+    }
+
+    // Cerrar los archivos
+    fclose(programa);
+}
+
+void AgregarNodoAListos_ManipulandoELTms(struct PCB **cabeza, struct PCB *nuevoNodo) {
+    // Asignar direcciones reales TMP y marcar TMS
+    int ContadorCeros2 = nuevoNodo->TmpSize;
+    int j = 0;
+    for (int i = 0; i < tamano; i++) {
+        if (Mapa[i] == 0) { // Si está libre
+            Mapa[i] = nuevoNodo->PID; // Poner el PID en el TMS
+            nuevoNodo->TMP[j] = i; // Poner las direcciones reales en el TMP
+            ContadorCeros2--;
+            j++;
+            if (ContadorCeros2 <= 0) {
+                break;
+            }
+        }
+    }
+
+    // Añadir el nodo a la lista de listos
+    nuevoNodo->sig = NULL; // Asegurarse de que el nuevo nodo no apunte a ningún otro nodo
+
+    if (*cabeza == NULL) {
+        *cabeza = nuevoNodo; // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
+    } else {
+        struct PCB *ultimo = *cabeza;
+        while (ultimo->sig != NULL) {
+            ultimo = ultimo->sig;
+        }
+        ultimo->sig = nuevoNodo; // Enlazar el nuevo nodo después del último nodo
+    }
+    CargarSwap(nuevoNodo);
+}
+
+
+int ChecarSwapLibre(int tmpSize){
+    //hay disponible en la swap?
+        for (int i = 0; i < tamano; i++){
+            if(Mapa[i] == 0){
+                tmpSize --;
+                if(tmpSize <= 0){
+                    return 200; //si llega menor o igual a cero si hay espacio
+                }
+            }
+        }//despues del bucle si contadorceros es menor a cero si hay espacio en swap
+    return 400;
+    
+}
+
+int CalulcarTMPSize(char nombrePrograma[256]){
+    //calcular tmpSize
+    int tmpSize;
+    int contador = 0;
+    char buffer[1024]; // Tamaño del buffer para leer líneas
+    FILE *archivo = fopen(nombrePrograma, "r");
+
+    // Leer línea por línea hasta el final del archivo
+    while (fgets(buffer, sizeof(buffer), archivo) != NULL) {
+        contador++;
+    }
+    tmpSize = contador / 16;
+    if (contador % 16 != 0) { // Verifica si hay un residuo
+        tmpSize++; // Incrementa en uno si hay un residuo
+    }
+    fclose(archivo);
+    //fin de calculo tmpSize
+    return tmpSize;
+}
 
 // Función para crear un nuevo nodo de PCB y agregar el nombre del programa al inicio de la lista
-void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id, struct PCB **nuevos, struct PCB **terminados, int *Mapa, int tamano) {
+void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id, struct PCB **nuevos, struct PCB **terminados) {
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
     if(nuevoNodo == NULL){
@@ -266,66 +413,20 @@ void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id, s
     nuevoNodo->KCPU = 0;
     nuevoNodo->KCPUxU = 0;
     nuevoNodo->UID = user_id;
+
+
+
+    nuevoNodo->TmpSize = CalulcarTMPSize(nuevoNodo->fileName); //calculando tmpsize
     nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
 
-    //calcular tmpSize
-    int contador = 0;
-    char buffer[1024]; // Tamaño del buffer para leer líneas
-    FILE *archivo = fopen(nombrePrograma, "r");
-
-    // Leer línea por línea hasta el final del archivo
-    while (fgets(buffer, sizeof(buffer), archivo) != NULL) {
-        contador++;
-    }
-    nuevoNodo->TmpSize = contador / 16;
-    if (contador % 16 != 0) { // Verifica si hay un residuo
-        nuevoNodo->TmpSize++; // Incrementa en uno si hay un residuo
-    }
-    fclose(archivo);
+    
 
     if(nuevoNodo->TmpSize <= 4096){//si cabe en swap
         //hay disponible en la swap?
-        int contadorDeCeros = nuevoNodo->TmpSize;
-        for (int i = 0; i < tamano; i++){
-            if(Mapa[i] == 0){
-                contadorDeCeros --;
-                if(contadorDeCeros <= 0){
-                    break;
-                }
-            }
-        }//despues del bucle si contadorceros es menor a cero si hay espacio en swap
-        if(contadorDeCeros <= 0){//si hay espacio en swap actualmente
-            int ContadorCeros2 = nuevoNodo->TmpSize;
-            int j = 0;
-            for (int i = 0; i< tamano;i++){
-                if(Mapa[i] == 0){ //si esta libre
-                    Mapa[i] = nuevoNodo->PID; // ponemos el pid en el tms
-                    nuevoNodo->TMP[j] = i; //ponemos las direcciones reales en el TMP
-                    ContadorCeros2--;
-                    j++;
-                    if(ContadorCeros2 <= 0){
-                        break;
-                    }
-                }
-            }
-            //pasarlo a listos
+        if(ChecarSwapLibre(nuevoNodo->TmpSize) == 200){//si hay espacio en swap actualmente
             
-            // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
-            if (*cabeza == NULL) {
-                *cabeza = nuevoNodo;
-                return;
-            }
-
-            // Buscar el último nodo de la lista
-            struct PCB *ultimo = *cabeza;
-            while (ultimo->sig != NULL) {
-                ultimo = ultimo->sig;
-            }
-
-            // Enlazar el nuevo nodo después del último nodo
-            ultimo->sig = nuevoNodo;
-
+            AgregarNodoAListos_ManipulandoELTms(cabeza, nuevoNodo);
 
 
         }else{//no hay espacio en swap actualmente pasarlo a nuevos
@@ -377,6 +478,7 @@ void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id, s
 
 
 void push(struct PCB **cabeza, struct PCB *ejecucion) {
+    QuitarPidDelTMS((ejecucion)->PID);
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
     if(nuevoNodo == NULL){
@@ -416,6 +518,7 @@ void prints_titulos(){
     mvprintw(34, 82, "Listos");
     mvprintw(34, 140, "Terminados");
     mvprintw(0, 150, "Ejecucion");
+    mvprintw(55, 1, "Nuevos");
     refresh();
 }
 
@@ -546,3 +649,33 @@ void contador_de_usuarios(struct PCB **listos, struct PCB **ejecucion, int *cont
     (*contador) = num_uid_unicos;
 }
 
+void MeterNuevos_Listos(struct PCB **nuevos, struct PCB **listos) {
+    if (nuevos == NULL || *nuevos == NULL) {
+        return; // No hay nada que procesar si nuevos es NULL o la lista de nuevos está vacía
+    }
+
+    struct PCB *actual = *nuevos;
+    struct PCB *anterior = NULL;
+
+    while (actual != NULL) {
+        struct PCB *siguiente = actual->sig; // Guardar el siguiente nodo antes de modificar los punteros
+        if (ChecarSwapLibre(actual->TmpSize) == 200) {
+            // Agregar el nodo actual a la lista de listos
+            AgregarNodoAListos_ManipulandoELTms(listos, actual);
+
+            // Eliminar el nodo actual de la lista de nuevos
+            if (anterior == NULL) {
+                // Si actual es el primer nodo en la lista de nuevos
+                *nuevos = siguiente;
+            } else {
+                // Si actual está en el medio o final de la lista
+                anterior->sig = siguiente;
+            }
+            // No mover al siguiente nodo aún, ya que ya está establecido en 'siguiente'
+        } else {
+            // Avanzar los punteros
+            anterior = actual;
+        }
+        actual = siguiente; // Mover al siguiente nodo
+    }
+}
