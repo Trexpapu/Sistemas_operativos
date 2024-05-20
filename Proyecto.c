@@ -21,12 +21,7 @@ char UserID[40]; // se usa para la conversion atoi
 int copia_userID = 0; //se guarda la copia si el atoi es exitoso
 int contador_usuarios = 0;
 char UltimoComando[264];
-FILE *file;
-const char *filename = "SWAP.bin";
 
-#define TOTAL_MARCOS 4096 // 65536 instrucciones / 16 instrucciones por marco
-
-int Mapa[TOTAL_MARCOS];
 
 
 
@@ -471,8 +466,7 @@ int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quan
 void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB **ejecucion,struct PCB **nuevos, int *bandera, int *programa_cargado, int ejecucion_a_comandos, char archivo_valido[200], int retorno_kill) {
     if (ejecucion_a_comandos == 200) {
         strcpy(archivo_valido, archivo);
-        int tamano = sizeof(Mapa) / sizeof(Mapa[0]);
-        insert(listos, archivo_valido, PBase, copia_userID, nuevos, terminados, Mapa, tamano);
+        insert(listos, archivo_valido, PBase, copia_userID, nuevos, terminados);
         Actualizar_W();
         
 
@@ -553,10 +547,9 @@ void cerrarSwap() {
     }
 }
 
-int ImprimirDatosSwap(int opcion, int *referencia) { //pendiente asignar mensajes de error
-    // Abrir el archivo en modo binario para lectura
+int ImprimirDatosSwap(int opcion, int *referencia) {
+    // Verificar que el archivo esté abierto
     if (file == NULL) {
-        //perror("El archivo no está abierto");
         return 404;
     }
 
@@ -568,50 +561,50 @@ int ImprimirDatosSwap(int opcion, int *referencia) { //pendiente asignar mensaje
     // Reservar memoria para el buffer
     char *buffer = (char *)malloc(file_size);
     if (buffer == NULL) {
-        //perror("Error al asignar memoria");
         return 405;
     }
 
     // Leer el contenido del archivo en el buffer
     if (fread(buffer, sizeof(char), file_size, file) != file_size) {
-        //perror("Error al leer del archivo");
         free(buffer);
         return 406;
     }
-    if(opcion == 188 && (*referencia) < TOTAL_MARCOS){ // ese numero es 16 * 4096 = 65536... opcion de avance
+
+    // Manejar la opción de avance y retroceso
+    if (opcion == 188 && (*referencia) < TOTAL_MARCOS) {
         (*referencia) += 96;
-    }else if(opcion == 189 && (*referencia) >=96){ // si la referencia esta despues de la cantidad de marcos disponibles para ver... opcion de retroceso
+    } else if (opcion == 189 && (*referencia) >= 96) {
         (*referencia) -= 96;
     }
 
-    // Imprimir el contenido del buffer en columnas de 16 filas cada una
+    // Imprimir el contenido del buffer en el formato específico
     int x = 210; // el eje x en la pantalla
     int encabezado = 34; // de donde empieza a imprimir en la pantalla
-    int j = 0;//salto de linea para imprimir las filas
-    int final = (*referencia) + 96; //96 para mostrar 6 marcos
-    
-    
-    for (long i = (*referencia); i < final; i++) {
-        mvprintw(encabezado+j, x, "[%04X]", i);
-        if ((unsigned char)buffer[i] != 0){//mostrar solo los datos que no sean cero 
-            mvprintw(encabezado+j, x+8, "%02x ", (unsigned char)buffer[i]);
+    int j = 0; // salto de línea para imprimir las filas
+    int final = (*referencia) + 96; // 96 para mostrar 6 marcos
+    int row = encabezado; // fila inicial
+    int col = x; // columna inicial
 
+    // Imprimir en el formato especificado
+    for (long i = (*referencia); i < final; i += 16) {
+        for (int offset = 0; offset < 16; offset++) {
+            if (i + offset < file_size) {
+                mvprintw(row + offset, col, "[%04lX] %-16s", i + offset, &buffer[(i + offset) * 32]);
+            } else {
+                mvprintw(row + offset, col, "[%04lX]", i + offset);
+            }
         }
-        j++;
-        if ((i + 1) % 16 == 0) {
-            x+=20;//movemos derecha
-            encabezado = 34; //reiniciamos el punto del encabezado
-            j = 0; //reiniciamos el punto para los saltos de linea
-            mvprintw(encabezado+j, x, "\n");
-
+        col += 20; // mover a la siguiente columna
+        if (col > 500) { // ajustar según sea necesario para no salir de la pantalla
+            col = x;
+            row += 18; // ajustar según sea necesario para las filas
         }
-       
     }
 
     // Limpiar y liberar memoria
     refresh();
     free(buffer);
-    return 0; //todo salio bien
+    return 0; // todo salió bien
 }
 
 void ImprimirDatosTMS(int opcion, int *referencia){
@@ -626,10 +619,12 @@ void ImprimirDatosTMS(int opcion, int *referencia){
     int j = 0;//salto de linea para imprimir las filas
     int final = (*referencia) + 16; //96 para mostrar 6 marcos
     for (long i = (*referencia); i < final; i++){
+        mvprintw(encabezado+j, x, "             ");
         mvprintw(encabezado+j, x, "[%03X]-%d", i, Mapa[i]);
         j++;
 
     }
+    refresh();
 
 }
 
@@ -685,7 +680,7 @@ int main(void) {
         imprimir_ejecion(ejecucion, 140, 3);
         imprimir_listos(listos, 82, 35);
         imprimir_terminados(terminados, 140, 35);
-        imprimir_nuevos(nuevos, 1, 60);
+        imprimir_nuevos(nuevos, 1, 56);
         printData(contador_usuarios, UltimoPuntoEnSwap, UltimoPuntoEnTMS);
 
         manejar_procesos(&listos, &terminados, &ejecucion, &nuevos,  &bandera, &programa_cargado, ejecucion_a_comandos, archivo_valido, retorno_kill);
@@ -699,17 +694,23 @@ int main(void) {
         if (contador_usuarios == 0){
             W = 0;
         }
+
+        //chequeo para ver si nuevos se puede meter a listos
+        MeterNuevos_Listos(&nuevos, &listos);
         
         }
+
+    
 
 
 
     endwin();
-    printf("Antes de liberar recursos: ejecucion=%p, listos=%p, terminados=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados);
+    printf("Antes de liberar recursos: ejecucion=%p, listos=%p, terminados=%p, listos=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados, (void*)nuevos);
     librerar_recursos(ejecucion);
     liberar_listos(&listos);
     liberar_lista_terminados(&terminados);
-    printf("Después de liberar recursos: ejecucion=%p, listos=%p, terminados=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados);
+    liberar_nuevos(&nuevos);
+    printf("Después de liberar recursos: ejecucion=%p, listos=%p, terminados=%p, listos=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados, (void*)nuevos);
     cerrarSwap();
 
     return 0;
