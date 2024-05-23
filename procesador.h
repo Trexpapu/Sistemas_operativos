@@ -532,8 +532,7 @@ int validar_operaciones_de_archivo(struct PCB *pcb) {
     return 0;
 }
 
-void impresionPCB(struct PCB *pcb){
-    
+void impresionPCB(struct PCB *pcb, int DRS){
 
         mvprintw(0, 85, "AX:     ");
         mvprintw(0, 85, "AX: %d", pcb->AX);
@@ -550,15 +549,15 @@ void impresionPCB(struct PCB *pcb){
         mvprintw(25, 85, "PID:   ");
         mvprintw(25, 85, "PID: %d", pcb->PID);
 
-        mvprintw(25, 100, "FileName:                             ");
-        mvprintw(25, 100, "FileName: %s", pcb->fileName);
+        mvprintw(20, 85, "FileName:                             ");
+        mvprintw(20, 85, "FileName: %s", pcb->fileName);
 
 
-        mvprintw(20, 100, "IR                  ");
-        mvprintw(20, 100, "IR: %s", pcb->IR);//imprimimos el IR, cada linea de archivo
+        mvprintw(20, 110, "IR                  ");
+        mvprintw(20, 110, "IR: %s", pcb->IR);//imprimimos el IR, cada linea de archivo
 
-        mvprintw(20, 85, "PC:   ");
-        mvprintw(20, 85, "PC: %d", pcb->PC);//imprimimos el PC, contador de las lineas de archivo
+        mvprintw(25, 100, "PC:   ");
+        mvprintw(25, 100, "PC: %d, DRS: [%04lX]", pcb->PC, DRS);//imprimimos el PC, contador de las lineas de archivo
 
         mvprintw(15, 100, "UID:      ");
         mvprintw(15, 100, "UID: %d", pcb->UID);
@@ -578,11 +577,11 @@ void impresionPCB(struct PCB *pcb){
 
 
         // Imprimir valores de la TMP
-        mvprintw(28, 100, "TMP:                ");
+        mvprintw(28, 100, "TMP:                                     ");
         int x = 100;
         for (int i = 0; i < pcb->TmpSize; i++) {
-            mvprintw(28, x+5, "%03X", pcb->TMP[i]);
-            x+=5;
+            mvprintw(28, x+5, "%d-%03X  ",i, pcb->TMP[i]);
+            x+=6;
         }
 
     refresh();
@@ -602,9 +601,9 @@ int verificar_archivo(char archivo[100]){
 }
 
 void prints_procesador(){
-        mvprintw(20, 100, "IR     ");
+        mvprintw(20, 110, "IR     ");
 
-        mvprintw(20, 85, "PC:   ");
+        mvprintw(25, 100, "PC:   ");
 
         mvprintw(0, 85, "AX:     ");
 
@@ -628,7 +627,7 @@ void prints_procesador(){
 
         mvprintw(0, 100, "KCPUxU:     ");
 
-        mvprintw(25, 100, "FileName:    ");
+        mvprintw(20, 85, "FileName:  ");
         mvprintw(0,0,"");
     refresh();
 }
