@@ -8,7 +8,7 @@
 int P_count = 1;
 #define TOTAL_MARCOS  4096 // 65536 instrucciones / 16 instrucciones por marco
 
-int Mapa[TOTAL_MARCOS]; // tms
+int Mapa[TOTAL_MARCOS]; // TMS
 int tamano = sizeof(Mapa) / sizeof(Mapa[0]);
 
 FILE *file;
@@ -21,103 +21,272 @@ void QuitarPidDelTMS(int pid){
             Mapa[i] = 0;
         }
     }
+    refresh();
+}
+
+void buscaHermanosHeredar(struct PCB **listos, int PID, char *fileName, int UID, int TmpSize, int *encontroHermanos, struct PCB ** ejecucion, int opcion){
+    int finalizar = 0;
+    if (opcion == 0){ // para buscar en listos
+        //checar si son procesos hermanos mismo uid mimso programa
+        struct PCB *referencia = *listos;
+        if(referencia != NULL){
+            while (referencia != NULL && finalizar == 0){
+                if(UID == referencia->UID && strcmp(fileName, referencia->fileName) == 0){//en efecto son procesos hermanos
+                    (*encontroHermanos) = 1;
+                    finalizar = 1;
+                    int contadorCerosTemp = TmpSize;
+                    int j = 0;
+                    for (int i = 0; i < tamano; i++){
+                        if(Mapa[i] == PID){
+                            Mapa[i] = referencia->PID;
+                            contadorCerosTemp--;
+                            j++;
+                            if (contadorCerosTemp <= 0){
+                                break;
+                            }
+                        }
+                    }
+                }
+                referencia = referencia->sig;
+            }
+        }
+        if(finalizar == 0){ // no enconetro hermanos en listos, buscamos en ejecucion
+        struct PCB *referencia = *ejecucion;
+            if(referencia != NULL){
+            
+                if(UID == referencia->UID && strcmp(fileName, referencia->fileName) == 0){//en efecto son procesos hermanos
+                    (*encontroHermanos) = 1;
+                    int contadorCerosTemp = TmpSize;
+                    int j = 0;
+                    for (int i = 0; i < tamano; i++){
+                        if(Mapa[i] == PID){
+                            Mapa[i] = referencia->PID;
+                            contadorCerosTemp--;
+                            j++;
+                            if (contadorCerosTemp <= 0){
+                                break;
+                            }
+                        }
+                    }
+                }
+
+            
+            }
+        }
+
+
+    }else if (opcion == 1){
+        struct PCB *referencia = *listos;
+        if(referencia != NULL){
+            while (referencia != NULL && finalizar == 0){
+                if(UID == referencia->UID && strcmp(fileName, referencia->fileName) == 0){//en efecto son procesos hermanos
+                    (*encontroHermanos) = 1;
+                    finalizar = 1;
+                    int contadorCerosTemp = TmpSize;
+                    int j = 0;
+                    for (int i = 0; i < tamano; i++){
+                        if(Mapa[i] == PID){
+                            Mapa[i] = referencia->PID;
+                            contadorCerosTemp--;
+                            j++;
+                            if (contadorCerosTemp <= 0){
+                                break;
+                            }
+                        }
+                    }
+                }
+                referencia = referencia->sig;
+            }
+        }
+
+    }
 }
 
 
+int kill_push(struct PCB **listos, int pid, struct PCB **terminados, struct PCB **ejecucion, int Opcion){
+    int encontroHermanos = 0;
+    if (Opcion == 0){//condicion para buscar kill en listos
+            if (*listos == NULL){ // Verifica si la lista donde buscamos está vacía
+                return -1;
+            }
+        
 
+        // Verifica si el PID está en el primer nodo
+        if ((*listos)->PID == pid){
+            
 
-int kill_push(struct PCB **cabeza, int pid, struct PCB **terminados){
-
-
-    if (*cabeza == NULL){ // Verifica si la lista donde buscamos está vacía
-        return -1;
-    }
-    QuitarPidDelTMS(pid);
-
-    // Verifica si el PID está en el primer nodo
-    if ((*cabeza)->PID == pid){
-
-        // Crear un nuevo nodo de PCB
-        struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
-        if(nuevoNodo == NULL){
-            mvprintw(40, 5, "Error no se pudo reservar más memoria...");
-            refresh();
-            return 3;
-        }
-
-        // Copia el primer nodo en el nuevo nodo
-        *nuevoNodo = **cabeza;
-        nuevoNodo->sig = NULL;
-
-        // Si la lista de terminados está vacía, el nuevo nodo se convierte en la cabeza
-        if (*terminados == NULL) {
-            *terminados = nuevoNodo;
-        } else {
-            // Busca el último nodo de la lista
-            struct PCB *ultimo = *terminados;
-            while (ultimo->sig != NULL) {
-                ultimo = ultimo->sig;
+            // Crear un nuevo nodo de PCB
+            struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+            if(nuevoNodo == NULL){
+                mvprintw(40, 5, "Error no se pudo reservar más memoria...");
+                refresh();
+                return 3;
             }
 
-            // Enlaza el nuevo nodo después del último nodo
-            ultimo->sig = nuevoNodo;
+            // Copia el primer nodo en el nuevo nodo
+            *nuevoNodo = **listos;
+            nuevoNodo->sig = NULL;
+            int PID = (nuevoNodo->PID);
+            char fileName[256];
+            strcpy(fileName, (nuevoNodo->fileName));
+            int UID = (nuevoNodo->UID);
+            int TmpSize = (nuevoNodo->TmpSize);
+
+
+            // Si la lista de terminados está vacía, el nuevo nodo se convierte en la listos
+            if (*terminados == NULL) {
+                *terminados = nuevoNodo;
+            } else {
+                // Busca el último nodo de la lista
+                struct PCB *ultimo = *terminados;
+                while (ultimo->sig != NULL) {
+                    ultimo = ultimo->sig;
+                }
+
+                // Enlaza el nuevo nodo después del último nodo
+                ultimo->sig = nuevoNodo;
+            }
+
+            // Elimina el primer nodo de la lista
+            struct PCB *temp = *listos;
+            *listos = (*listos)->sig;
+            fclose(temp->programa);
+            free(temp);
+
+            buscaHermanosHeredar(listos, PID, fileName, UID, TmpSize, &encontroHermanos, ejecucion, 0);
+            if(encontroHermanos == 0){ //no encontro hermanos asi que solo quitamos en el tms el pid del proceso
+                //quitamos el pid del tms
+                QuitarPidDelTMS(pid);
+            }
+
+            return 0;
         }
 
-        // Elimina el primer nodo de la lista
-        struct PCB *temp = *cabeza;
-        *cabeza = (*cabeza)->sig;
-        fclose(temp->programa);
-        free(temp);
+        // Busca el nodo con el PID dado
+        struct PCB *actual = *listos;
+        struct PCB *anterior = NULL;
 
+        while (actual != NULL && actual->PID != pid) {
+            anterior = actual;
+            actual = actual->sig;
+        }
+
+        // Si se encontró el nodo con el PID dado
+        if (actual != NULL) {
+            anterior->sig = actual->sig; // Elimina el nodo ajustando los enlaces
+
+            // Crear un nuevo nodo de PCB
+            struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+            if(nuevoNodo == NULL){
+                mvprintw(40, 5, "Error no se pudo reservar más memoria...");
+                refresh();
+                return 3;
+            }
+
+            // Copia el nodo actual en el nuevo nodo
+            *nuevoNodo = *actual;
+            nuevoNodo->sig = NULL;
+            int PID = (nuevoNodo->PID);
+            char fileName[256];
+            strcpy(fileName, (nuevoNodo->fileName));
+            int UID = (nuevoNodo->UID);
+            int TmpSize = (nuevoNodo->TmpSize);
+
+
+            // Si la lista de terminados está vacía, el nuevo nodo se convierte en la listos
+            if (*terminados == NULL) {
+                *terminados = nuevoNodo;
+            } else {
+                // Busca el último nodo de la lista
+                struct PCB *ultimo = *terminados;
+                while (ultimo->sig != NULL) {
+                    ultimo = ultimo->sig;
+                }
+
+                // Enlaza el nuevo nodo después del último nodo
+                ultimo->sig = nuevoNodo;
+            }
+
+            fclose(actual->programa);
+            free(actual);
+
+            buscaHermanosHeredar(listos, PID, fileName, UID, TmpSize, &encontroHermanos, ejecucion, 0);
+            if(encontroHermanos == 0){ //no encontro hermanos asi que solo quitamos en el tms el pid del proceso
+                //quitamos el pid del tms
+                QuitarPidDelTMS(pid);
+            }
+
+        } else {
+            return -1; // No se encontró el PID en la lista
+        }
         return 0;
-    }
+    
+    }else if (Opcion == 1){//condicion para buscar kill en ejecucion
 
-    // Busca el nodo con el PID dado
-    struct PCB *actual = *cabeza;
-    struct PCB *anterior = NULL;
+        if (*ejecucion == NULL){ // Verifica si la lista donde buscamos está vacía
+                return -1; // no esta el pid
+            }
+        
 
-    while (actual != NULL && actual->PID != pid) {
-        anterior = actual;
-        actual = actual->sig;
-    }
+        // Verifica si el PID está en el primer nodo
+        if ((*ejecucion)->PID == pid){
+            
 
-    // Si se encontró el nodo con el PID dado
-    if (actual != NULL) {
-        anterior->sig = actual->sig; // Elimina el nodo ajustando los enlaces
-
-        // Crear un nuevo nodo de PCB
-        struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
-        if(nuevoNodo == NULL){
-            mvprintw(40, 5, "Error no se pudo reservar más memoria...");
-            refresh();
-            return 3;
-        }
-
-        // Copia el nodo actual en el nuevo nodo
-        *nuevoNodo = *actual;
-        nuevoNodo->sig = NULL;
-
-        // Si la lista de terminados está vacía, el nuevo nodo se convierte en la cabeza
-        if (*terminados == NULL) {
-            *terminados = nuevoNodo;
-        } else {
-            // Busca el último nodo de la lista
-            struct PCB *ultimo = *terminados;
-            while (ultimo->sig != NULL) {
-                ultimo = ultimo->sig;
+            // Crear un nuevo nodo de PCB
+            struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
+            if(nuevoNodo == NULL){
+                mvprintw(40, 5, "Error no se pudo reservar más memoria...");
+                refresh();
+                return 3;
             }
 
-            // Enlaza el nuevo nodo después del último nodo
-            ultimo->sig = nuevoNodo;
+            // Copia el primer nodo en el nuevo nodo
+            *nuevoNodo = **ejecucion;
+            nuevoNodo->sig = NULL;
+            int PID = (nuevoNodo->PID);
+            char fileName[256];
+            strcpy(fileName, (nuevoNodo->fileName));
+            int UID = (nuevoNodo->UID);
+            int TmpSize = (nuevoNodo->TmpSize);
+
+
+            // Si la lista de terminados está vacía, el nuevo nodo se convierte en la ejecucion
+            if (*terminados == NULL) {
+                *terminados = nuevoNodo;
+            } else {
+                // Busca el último nodo de la lista
+                struct PCB *ultimo = *terminados;
+                while (ultimo->sig != NULL) {
+                    ultimo = ultimo->sig;
+                }
+
+                // Enlaza el nuevo nodo después del último nodo
+                ultimo->sig = nuevoNodo;
+            }
+
+            // Elimina el primer nodo de la lista
+            struct PCB *temp = *ejecucion;
+            *ejecucion = (*ejecucion)->sig;
+            fclose(temp->programa);
+            free(temp);
+
+            buscaHermanosHeredar(listos, PID, fileName, UID, TmpSize, &encontroHermanos, ejecucion, 1);
+            if(encontroHermanos == 0){ //no encontro hermanos asi que solo quitamos en el tms el pid del proceso
+                //quitamos el pid del tms
+                QuitarPidDelTMS(pid);
+            }
+
+            return 0;
+        }else{
+            return -1; //no se encontro el pid
         }
 
-        fclose(actual->programa);
-        free(actual);
 
-    } else {
-        return -1; // No se encontró el PID en la lista
+
     }
-    return 0;
+
+
+    
 }
 
 
@@ -324,36 +493,113 @@ void CargarSwap(struct PCB *nodo) {
     // Cerrar los archivos
     fclose(programa);
 }
+void buscaHermanosInsertar(struct PCB **listos, struct PCB *nuevoNodo, struct PCB **ejecucion, int *encontroHermanos){
+    int enconetroEnListos = 0;
 
-void AgregarNodoAListos_ManipulandoELTms(struct PCB **cabeza, struct PCB *nuevoNodo) {
-    // Asignar direcciones reales TMP y marcar TMS
-    int ContadorCeros2 = nuevoNodo->TmpSize;
-    int j = 0;
-    for (int i = 0; i < tamano; i++) {
-        if (Mapa[i] == 0) { // Si está libre
-            Mapa[i] = nuevoNodo->PID; // Poner el PID en el TMS
-            nuevoNodo->TMP[j] = i; // Poner las direcciones reales en el TMP
-            ContadorCeros2--;
-            j++;
-            if (ContadorCeros2 <= 0) {
-                break;
+    //checar si son procesos hermanos mismo uid mimso programa
+    //para listos
+    struct PCB *referencia = *listos;
+    if(referencia != NULL){
+        while (referencia != NULL && enconetroEnListos == 0){
+            if(nuevoNodo->UID == referencia->UID && strcmp(nuevoNodo->fileName, referencia->fileName) == 0){//en efecto son procesos hermanos
+                (*encontroHermanos) = 1;
+                enconetroEnListos = 1;
+                int contadorCerosTemp = nuevoNodo->TmpSize;
+                int j = 0;
+                for (int i = 0; i < tamano; i++){
+                    if(Mapa[i] == referencia->PID){
+                        nuevoNodo->TMP[j] = i;
+                        contadorCerosTemp--;
+                        j++;
+                        if (contadorCerosTemp <= 0){
+                            break;
+                        }
+                    }
+                }
             }
+            referencia = referencia->sig;
         }
     }
 
-    // Añadir el nodo a la lista de listos
-    nuevoNodo->sig = NULL; // Asegurarse de que el nuevo nodo no apunte a ningún otro nodo
-
-    if (*cabeza == NULL) {
-        *cabeza = nuevoNodo; // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
-    } else {
-        struct PCB *ultimo = *cabeza;
-        while (ultimo->sig != NULL) {
-            ultimo = ultimo->sig;
+    if (enconetroEnListos == 0){
+        //checar para ejecucion
+        struct PCB *referencia2 = *ejecucion;
+        if(referencia2 != NULL){
+                if(nuevoNodo->UID == referencia2->UID && strcmp(nuevoNodo->fileName, referencia2->fileName) == 0){//en efecto son procesos hermanos
+                    (*encontroHermanos) = 1;
+                    int contadorCerosTemp2 = nuevoNodo->TmpSize;
+                    int j = 0;
+                    for (int i = 0; i < tamano; i++){
+                        if(Mapa[i] == referencia2->PID){
+                            nuevoNodo->TMP[j] = i;
+                            contadorCerosTemp2--;
+                            j++;
+                            if (contadorCerosTemp2 <= 0){
+                                break;
+                            }
+                        }
+                    }
+                }
         }
-        ultimo->sig = nuevoNodo; // Enlazar el nuevo nodo después del último nodo
     }
-    CargarSwap(nuevoNodo);
+
+}
+
+
+void AgregarNodoAListos_ManipulandoELTms(struct PCB **cabeza, struct PCB *nuevoNodo, struct PCB **ejecucion) {
+    int encontroHermanos = 0;
+
+    //checar si son procesos hermanos mismo uid mimso programa
+   buscaHermanosInsertar(cabeza, nuevoNodo, ejecucion, &encontroHermanos);
+
+    if(encontroHermanos == 0){
+            // Asignar direcciones reales TMP y marcar TMS
+            int ContadorCeros2 = nuevoNodo->TmpSize;
+            int j = 0;
+            for (int i = 0; i < tamano; i++) {
+                if (Mapa[i] == 0) { // Si está libre
+                    Mapa[i] = nuevoNodo->PID; // Poner el PID en el TMS
+                    nuevoNodo->TMP[j] = i; // Poner las direcciones reales en el TMP
+                    ContadorCeros2--;
+                    j++;
+                    if (ContadorCeros2 <= 0) {
+                        break;
+                    }
+                }
+            }
+
+            // Añadir el nodo a la lista de listos
+            nuevoNodo->sig = NULL; // Asegurarse de que el nuevo nodo no apunte a ningún otro nodo
+
+            if (*cabeza == NULL) {
+                *cabeza = nuevoNodo; // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
+            } else {
+                struct PCB *ultimo = *cabeza;
+                while (ultimo->sig != NULL) {
+                    ultimo = ultimo->sig;
+                }
+                ultimo->sig = nuevoNodo; // Enlazar el nuevo nodo después del último nodo
+            }
+
+            CargarSwap(nuevoNodo);
+
+            
+
+    }else if (encontroHermanos == 1){
+        sleep(1);
+        // Añadir el nodo a la lista de listos
+            nuevoNodo->sig = NULL; // Asegurarse de que el nuevo nodo no apunte a ningún otro nodo
+
+            if (*cabeza == NULL) {
+                *cabeza = nuevoNodo; // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
+            } else {
+                struct PCB *ultimo = *cabeza;
+                while (ultimo->sig != NULL) {
+                    ultimo = ultimo->sig;
+                }
+                ultimo->sig = nuevoNodo; // Enlazar el nuevo nodo después del último nodo
+            }
+    }
 }
 
 
@@ -392,7 +638,7 @@ int CalulcarTMPSize(char nombrePrograma[256]){
 }
 
 // Función para crear un nuevo nodo de PCB y agregar el nombre del programa al inicio de la lista
-void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id, struct PCB **nuevos, struct PCB **terminados) {
+void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id, struct PCB **nuevos, struct PCB **terminados, struct PCB ** ejecucion) {
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
     if(nuevoNodo == NULL){
@@ -422,11 +668,11 @@ void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id, s
 
     
 
-    if(nuevoNodo->TmpSize <= 4096){//si cabe en swap
+    if(nuevoNodo->TmpSize <= TOTAL_MARCOS){//si cabe en swap
         //hay disponible en la swap?
         if(ChecarSwapLibre(nuevoNodo->TmpSize) == 200){//si hay espacio en swap actualmente
             
-            AgregarNodoAListos_ManipulandoELTms(cabeza, nuevoNodo);
+            AgregarNodoAListos_ManipulandoELTms(cabeza, nuevoNodo, ejecucion);
 
 
         }else{//no hay espacio en swap actualmente pasarlo a nuevos
@@ -469,7 +715,7 @@ void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id, s
         int ejey = 40;
         int ejex = 1;
         mvprintw(ejey, ejex, "                                                                 ");
-        mvprintw(ejey, ejex, "No hay espacio suficiente en la SWAP");
+        mvprintw(ejey, ejex, "No hay espacio suficiente en la SWAP para tu proceso");
         refresh();
 
 
@@ -477,8 +723,18 @@ void insert(struct PCB **cabeza, char *nombrePrograma, int Pbase, int user_id, s
 }
 
 
-void push(struct PCB **cabeza, struct PCB *ejecucion) {
-    QuitarPidDelTMS((ejecucion)->PID);
+void push(struct PCB **terminados, struct PCB *ejecucion, struct PCB **listos) {
+    int encontroHermanos = 0;
+    int PID = (ejecucion->PID);
+    char fileName[256];
+    strcpy(fileName, (ejecucion->fileName));
+    int UID = (ejecucion->UID);
+    int TmpSize = (ejecucion->TmpSize);
+    buscaHermanosHeredar(listos, PID, fileName, UID, TmpSize, &encontroHermanos, &ejecucion, 1);
+    if(encontroHermanos == 0){ //no encontro hermanos asi que solo quitamos en el tms el pid del proceso
+            //quitamos el pid del tms
+            QuitarPidDelTMS((ejecucion->PID));
+    }
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
     if(nuevoNodo == NULL){
@@ -489,14 +745,14 @@ void push(struct PCB **cabeza, struct PCB *ejecucion) {
     *nuevoNodo = *ejecucion; // Copiar la estructura ejecucion en nuevoNodo
     nuevoNodo->sig = NULL; // Establecer el siguiente del nuevo nodo como NULL
 
-    // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
-    if (*cabeza == NULL) {
-        *cabeza = nuevoNodo;
+    // Si la lista está vacía, el nuevo nodo se convierte en la terminados
+    if (*terminados == NULL) {
+        *terminados = nuevoNodo;
         return;
     }
 
     // Buscar el último nodo de la lista
-    struct PCB *ultimo = *cabeza;
+    struct PCB *ultimo = *terminados;
     while (ultimo->sig != NULL) {
         ultimo = ultimo->sig;
     }
@@ -649,7 +905,7 @@ void contador_de_usuarios(struct PCB **listos, struct PCB **ejecucion, int *cont
     (*contador) = num_uid_unicos;
 }
 
-void MeterNuevos_Listos(struct PCB **nuevos, struct PCB **listos) {
+void MeterNuevos_Listos(struct PCB **nuevos, struct PCB **listos, struct PCB **ejecucion) {
     if (nuevos == NULL || *nuevos == NULL) {
         return; // No hay nada que procesar si nuevos es NULL o la lista de nuevos está vacía
     }
@@ -661,7 +917,7 @@ void MeterNuevos_Listos(struct PCB **nuevos, struct PCB **listos) {
         struct PCB *siguiente = actual->sig; // Guardar el siguiente nodo antes de modificar los punteros
         if (ChecarSwapLibre(actual->TmpSize) == 200) {
             // Agregar el nodo actual a la lista de listos
-            AgregarNodoAListos_ManipulandoELTms(listos, actual);
+            AgregarNodoAListos_ManipulandoELTms(listos, actual, ejecucion);
 
             // Eliminar el nodo actual de la lista de nuevos
             if (anterior == NULL) {
