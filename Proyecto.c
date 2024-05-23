@@ -133,7 +133,7 @@ int atiende_shell(char *comando, int *j, int *y) {
                     (*j)--;
                     comando[*j] = '\0';
                     mvprintw(*y, 0, "                                                              ");
-                    if (global_sleep < 1800000){
+                    if (global_sleep < 2400000){
                         global_sleep += 100000;
                     }
                 }else if(comando[*j] == 68){//flecha izquierda
@@ -420,9 +420,46 @@ void Actualizar_W(){
 }
 
 
+
 int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quantum, int *programa_cargado, struct PCB **listos) {
+
+    //vemos el limite de pc de cada archivo
+    char NombrePrograma[256];
+    strcpy(NombrePrograma, (*ejecucion)->fileName);
+    FILE *programa = fopen(NombrePrograma, "r");
+
+
+    char linea[256];
+    int Limite_pc = 0;
+
+    // Leer cada línea del archivo del programa
+    while (fgets(linea, sizeof(linea), programa) != NULL){
+        Limite_pc++;
+    }
+    fclose(programa);
+
+
+    //leer del swap y sacar el dato
+    int PC = (*ejecucion)->PC;
+    int marco = PC / 16;
+    int offset = PC % 16;
+    int marco_swap = (*ejecucion)->TMP[marco];
+    int tamano_marco = 16;
+    int desplazamiento_real = (marco_swap * tamano_marco + offset) * 32;
+    int DRS = (marco_swap << 4) | offset;
+    //mover el puntero
+    fseek(file, desplazamiento_real, SEEK_SET);
+
+    // Leer la instrucción del archivo
+    
+
+
+
+
+
     int x = 0; // Recibe el retorno de operaciones de archivo
-    if (fgets((*ejecucion)->IR, sizeof((*ejecucion)->IR), n_archivo) != NULL) { // Leeemos la línea del archivo
+    if ((*ejecucion)->PC < Limite_pc) { // verificamos que todavia esta dentro de los limites del archivo
+    fread((*ejecucion)->IR, sizeof((*ejecucion)->IR), 1, file); //leemos en el archivo binario 
         
         x = validar_operaciones_de_archivo(*ejecucion); // Ejecutamos función pasando la estructura
         //Si hay algún proceso en ejecución y aún no termina su quantum
@@ -433,7 +470,7 @@ int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quan
         actualizarKCPUxU(listos, (*ejecucion)->UID, incCPU);
         (*ejecucion)->PC ++;
         (*quantum)++;
-        impresionPCB(*ejecucion);
+        impresionPCB(*ejecucion, DRS);
         if (x != 0) { // Cuando el archivo tiene un error lo tronamos con su respectivo error
             fclose(n_archivo);
             (*bandera) = 0;
@@ -453,10 +490,7 @@ int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quan
         (*programa_cargado) = 0;
         re_insert(listos, *ejecucion);
         (*quantum) = 0;
-        Actualizar_W();
-        //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
-        Actualizar_planificacion(listos, PBase, W);
-        //limpieza de
+        
 
     }
     return 0;
@@ -466,15 +500,14 @@ int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quan
 void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB **ejecucion,struct PCB **nuevos, int *bandera, int *programa_cargado, int ejecucion_a_comandos, char archivo_valido[200], int retorno_kill) {
     if (ejecucion_a_comandos == 200) {
         strcpy(archivo_valido, archivo);
-        insert(listos, archivo_valido, PBase, copia_userID, nuevos, terminados);
-        Actualizar_W();
+        insert(listos, archivo_valido, PBase, copia_userID, nuevos, terminados, ejecucion);
         
 
     } else if (ejecucion_a_comandos == 237) {//si se ejecuta el kill
 
-        retorno_kill = kill_push(listos, atoi(numero_de_kill), terminados);//buscamos en la lista listos
+        retorno_kill = kill_push(listos, atoi(numero_de_kill), terminados, ejecucion, 0);//buscamos en la lista listos
         if (retorno_kill != 0) {
-            retorno_kill = kill_push(ejecucion, atoi(numero_de_kill), terminados);//buscamos en el nodo en ejecucion
+            retorno_kill = kill_push(listos, atoi(numero_de_kill), terminados, ejecucion, 1);//buscamos en el nodo en ejecucion
             if (retorno_kill != 0) {
                     mostrar_mensajes_ejecucion(1);//si no se encontro en ningun lado
                 
@@ -482,50 +515,52 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
                 *bandera = 0;
                 *programa_cargado = 0;
                 mostrar_mensajes_ejecucion(2);
-                Actualizar_W();
-                //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
-                Actualizar_planificacion(listos, PBase, W);
+                
+               
             }
         }else{//si se encontro en listos
             mostrar_mensajes_ejecucion(3);
-            Actualizar_W();
+            
         }
     }
 
     if (*programa_cargado == 0) {
+         //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
+        Actualizar_W();
+        Actualizar_planificacion(listos, PBase, W);
         //limpiando ejecucion
         mvprintw(3, 140, "                                                                 -");
         refresh();
-        *ejecucion = pull(listos);//pull es para extraccion a ejecucion
+        *ejecucion = pull(listos);//pull es para extraccion listos a ejecucion
         if (*ejecucion != NULL) {
             *programa_cargado = 1;
             *bandera = 1;
         }
+         //chequeo para ver si nuevos se puede meter a listos
+        MeterNuevos_Listos(nuevos, listos, ejecucion);
     }
 
     if (*programa_cargado == 1) {
         if (*bandera == 0) {
-            push(terminados, *ejecucion);//push es para extraer de ejecucion a terminados
+            push(terminados, *ejecucion, listos);//push es para extraer de ejecucion a terminados
             *programa_cargado = 0;
-            Actualizar_W();
-            //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
-            Actualizar_planificacion(listos, PBase, W);
+            
         }
     }
 }
 
 
 void printData(int contador_usuarios, int limite, int limiteTMS){
-    mvprintw(28, 130, "sleep                  ");
-    mvprintw(28, 130, "sleep %d", global_sleep);
-    mvprintw(28, 160, "                 ");
-    mvprintw(28, 160, "Usuarios %d", contador_usuarios);
+    mvprintw(28, 150, "sleep                  ");
+    mvprintw(28, 150, "sleep %d", global_sleep);
+    mvprintw(28, 170, "                 ");
+    mvprintw(28, 170, "Usuarios %d", contador_usuarios);
     mvprintw(28, 180, "         ");
     mvprintw(28, 180, "LimiteSwap: %d", limite);
-    mvprintw(28, 190, "                   ");
-    mvprintw(28, 190, "LimiteSwap: %d", limite);
-    mvprintw(28, 210, "                   ");
-    mvprintw(28, 210, "LimiteTMS: %d", limiteTMS);
+    mvprintw(28, 200, "                   ");
+    mvprintw(28, 200, "LimiteSwap: %d", limite);
+    mvprintw(28, 220, "                   ");
+    mvprintw(28, 220, "LimiteTMS: %d", limiteTMS);
 
     refresh();
 }
@@ -694,9 +729,9 @@ int main(void) {
         if (contador_usuarios == 0){
             W = 0;
         }
+        Actualizar_W();
 
-        //chequeo para ver si nuevos se puede meter a listos
-        MeterNuevos_Listos(&nuevos, &listos);
+        
         
         }
 
