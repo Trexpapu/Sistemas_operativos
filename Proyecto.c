@@ -536,14 +536,15 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
             *programa_cargado = 1;
             *bandera = 1;
         }
-         //chequeo para ver si nuevos se puede meter a listos
-        MeterNuevos_Listos(nuevos, listos, ejecucion);
+         
     }
 
     if (*programa_cargado == 1) {
         if (*bandera == 0) {
             push(terminados, *ejecucion, listos);//push es para extraer de ejecucion a terminados
             *programa_cargado = 0;
+            //chequeo para ver si nuevos se puede meter a listos
+            MeterNuevos_Listos(nuevos, listos, ejecucion);
             
         }
     }
@@ -555,8 +556,6 @@ void printData(int contador_usuarios, int limite, int limiteTMS){
     mvprintw(28, 150, "sleep %d", global_sleep);
     mvprintw(28, 170, "                 ");
     mvprintw(28, 170, "Usuarios %d", contador_usuarios);
-    mvprintw(28, 180, "         ");
-    mvprintw(28, 180, "LimiteSwap: %d", limite);
     mvprintw(28, 200, "                   ");
     mvprintw(28, 200, "LimiteSwap: %d", limite);
     mvprintw(28, 220, "                   ");
