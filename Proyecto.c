@@ -34,9 +34,14 @@ int validar_comandos(char *comando){
                         //verificar si existe el archivo
                          if (access(archivo, F_OK) != -1){
                             if(atoi(UserID)){
-                                //return 200 para decir que si existe el archivo y el UserId es un numero valido
-                                copia_userID = atoi(UserID);
-                                return 200;
+                                if (verificar_archivo(archivo)==800){//si el archivo se puede abrir correctamente
+                                    return 800;
+                                }else{//si no regresa 800
+                                     //return 200 para decir que si existe el archivo y el UserId es un numero valido
+                                    copia_userID = atoi(UserID);
+                                    return 200;
+                                }
+                               
                             }else{
                                 //para decir que userID no es un numero entero valido
                                 return 777;
@@ -189,7 +194,6 @@ void prints(int *y, char *comando){
 }
 
 int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
-    int error_de_archivo=0;
     int ejey = 40;
     int ejex = 1;
     switch (opcion) {
@@ -198,16 +202,8 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 mvprintw(ejey, ejex, "                                                                                                               ");
                 mvprintw(ejey, ejex, "Comando ejecutado exitosamente");
                 memset(comando, 0, (*j));
-                (*j) = 0;
-                error_de_archivo=verificar_archivo(archivo);//verficamos el archivo
-                if (error_de_archivo==800){//si el archivo se puede abrir correctamente
-                    mvprintw(ejey, ejex, "                                                                                                               ");
-                    mvprintw(ejey, ejex, "Error al abrir el archivo");
-                }else{//si no regresa 800
-                    mvprintw((*y), 0, "PROMPT > %s", comando);
-                    return 200;//se puede leer el archivo
-                }
-                mvprintw((*y), 0, "PROMPT > %s", comando);
+                (*j) = 0; 
+                return 200;
                 break;
 
             case 188:
@@ -296,6 +292,13 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
+                break;
+
+            case 800:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Error al abrir el archivo");
+                memset(comando, 0, (*j));
+                (*j) = 0; 
                 break;
 
 
@@ -421,7 +424,7 @@ void Actualizar_W(){
 
 
 
-int leer_lineas(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quantum, int *programa_cargado, struct PCB **listos) {
+int leer_swap(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quantum, int *programa_cargado, struct PCB **listos) {
 
     //vemos el limite de pc de cada archivo
     char NombrePrograma[256];
@@ -720,7 +723,7 @@ int main(void) {
         manejar_procesos(&listos, &terminados, &ejecucion, &nuevos,  &bandera, &programa_cargado, ejecucion_a_comandos, archivo_valido, retorno_kill);
         if (bandera==1){//si bandera es 1 entonces podemos seguir leyendo el archivo
             usleep(global_sleep); //espera para ver cada lectura del archivo
-            leer_lineas(&ejecucion, &bandera, ejecucion->programa, &quantum, &programa_cargado, &listos);        
+            leer_swap(&ejecucion, &bandera, ejecucion->programa, &quantum, &programa_cargado, &listos);        
             }
         
 
