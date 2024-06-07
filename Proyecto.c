@@ -10,16 +10,15 @@
 //SECCION DE VARIABLES GLOBALES
 
 char archivo[200];//variable global de archivo
+char archivo_valido[200];
 char numero_de_kill[200];
 int global_sleep = 500000; //espera para ver cada lectura del archivo
 #define maxQUANTUM 5 //cantidad máxima de lectura de lineas
 int incCPU = 60 / maxQUANTUM; // Quantum por proceso (60/MAXQUANTUM).
 int PBase = 60; //Prioridad base para todos los procesos (60).
-int NumUs = 0; //Cantidad de usuarios para los cuales planificar (0).
 float W = 0.0; //Posteriormente (1/NumUsuarios)
 char UserID[40]; // se usa para la conversion atoi
 int copia_userID = 0; //se guarda la copia si el atoi es exitoso
-int contador_usuarios = 0;
 char UltimoComando[264];
 
 
@@ -38,6 +37,7 @@ int validar_comandos(char *comando){
                                     return 800;
                                 }else{//si no regresa 800
                                      //return 200 para decir que si existe el archivo y el UserId es un numero valido
+                                    strcpy(archivo_valido, archivo);
                                     copia_userID = atoi(UserID);
                                     return 200;
                                 }
@@ -203,7 +203,7 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 mvprintw(ejey, ejex, "Comando ejecutado exitosamente");
                 memset(comando, 0, (*j));
                 (*j) = 0; 
-                return 200;
+                
                 break;
 
             case 188:
@@ -212,7 +212,7 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
-                return 188;
+                
                 break;
 
             case 189:
@@ -221,7 +221,7 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
-                return 189;
+                
                 break;
 
 
@@ -231,7 +231,7 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
-                return 237;
+                
                 break;
 
             case 663:
@@ -240,7 +240,7 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
-                return 663;
+                
                 break;
 
             case 664:
@@ -249,7 +249,7 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
-                return 664;
+                
                 break;
 
 
@@ -389,7 +389,7 @@ void MensajesAlCrearSwap(int opcion){
 
 
 
-void mostrar_mensajes_ejecucion(int opcion){
+void respuesta_a_kill(int opcion){
     int ejey = 40;
     int ejex = 1;
     switch (opcion)
@@ -424,9 +424,8 @@ void Actualizar_W(){
 
 
 
-int leer_swap(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quantum, int *programa_cargado, struct PCB **listos) {
+int leer_swap(struct PCB **ejecucion, int *HazPush, int *quantum, int *programa_cargado, struct PCB **listos) {
 
-    //vemos el limite de pc de cada archivo
     char NombrePrograma[256];
     strcpy(NombrePrograma, (*ejecucion)->fileName);
     FILE *programa = fopen(NombrePrograma, "r");
@@ -441,6 +440,10 @@ int leer_swap(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quantu
     }
     fclose(programa);
 
+    
+
+   
+
 
     //leer del swap y sacar el dato
     int PC = (*ejecucion)->PC;
@@ -448,16 +451,12 @@ int leer_swap(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quantu
     int offset = PC % 16;
     int marco_swap = (*ejecucion)->TMP[marco];
     int tamano_marco = 16;
-    int desplazamiento_real = (marco_swap * tamano_marco + offset) * 32;
+    int desplazamiento_real = (marco_swap * tamano_marco + offset) * 32; //sin 32 es DRS
     int DRS = (marco_swap << 4) | offset;
     //mover el puntero
     fseek(file, desplazamiento_real, SEEK_SET);
 
     // Leer la instrucción del archivo
-    
-
-
-
 
 
     int x = 0; // Recibe el retorno de operaciones de archivo
@@ -465,33 +464,31 @@ int leer_swap(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quantu
     fread((*ejecucion)->IR, sizeof((*ejecucion)->IR), 1, file); //leemos en el archivo binario 
         
         x = validar_operaciones_de_archivo(*ejecucion); // Ejecutamos función pasando la estructura
-        //Si hay algún proceso en ejecución y aún no termina su quantum
-        //Actualiza los contadores de uso del CPU para el proceso en ejecución: KCPU = KCPU + IncCPU
-        //Actualiza los contadores de uso del CPU para todos los procesos (no Terminados) del usuario dueño del proceso en ejecución: KCPUxU = KCPUxU + IncCPU
         (*ejecucion)->KCPU += incCPU;
         (*ejecucion)->KCPUxU += incCPU;
         actualizarKCPUxU(listos, (*ejecucion)->UID, incCPU);
         (*ejecucion)->PC ++;
         (*quantum)++;
         impresionPCB(*ejecucion, DRS);
+
         if (x != 0) { // Cuando el archivo tiene un error lo tronamos con su respectivo error
-            fclose(n_archivo);
-            (*bandera) = 0;
+            
+            (*HazPush) = 1;
             (*quantum) = 0;
             mostrar_errores_de_archivo((*ejecucion), x);
         }
 
-    } else { // Si se llega al final del archivo lo cerramos y (*bandera) False
-        fclose(n_archivo);
-        (*bandera) = 0;
+    } else { // Si se llega al final del archivo lo cerramos y (*HazPush) False
+        
+        (*HazPush) = 1;
         (*quantum) = 0;
         mostrar_errores_de_archivo((*ejecucion), 99);
     }
     
     if ((*quantum) >= maxQUANTUM) {//si se llego al limite de lineas leidas por archivo reinstarmos al final de la lista listos
-        (*bandera) = 0;
+
+        re_insert(listos, ejecucion);
         (*programa_cargado) = 0;
-        re_insert(listos, *ejecucion);
         (*quantum) = 0;
         
 
@@ -499,36 +496,48 @@ int leer_swap(struct PCB **ejecucion, int *bandera, FILE *n_archivo, int *quantu
     return 0;
 }
 
+void mensaje_archivoGrande(int pid){
+    int ejey = 40;
+    int ejex = 1;
+    if(pid != 0){
+        mvprintw(ejey, ejex, "                                                                                                              ");
+        mvprintw(ejey, ejex, "EL proceso %d no cabe en SWAP ", pid);
+    }
+    refresh();
 
-void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB **ejecucion,struct PCB **nuevos, int *bandera, int *programa_cargado, int ejecucion_a_comandos, char archivo_valido[200], int retorno_kill) {
+}
+
+void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB **ejecucion,struct PCB **nuevos, int *HazPush, int *programa_cargado, int ejecucion_a_comandos) {
     if (ejecucion_a_comandos == 200) {
-        strcpy(archivo_valido, archivo);
-        insert(listos, archivo_valido, PBase, copia_userID, nuevos, terminados, ejecucion);
+        int pid;
+        pid = insert(listos, archivo_valido, PBase, copia_userID, nuevos, terminados, ejecucion);
+        mensaje_archivoGrande(pid);
         
 
     } else if (ejecucion_a_comandos == 237) {//si se ejecuta el kill
+        int retorno_kill;
 
         retorno_kill = kill_push(listos, atoi(numero_de_kill), terminados, ejecucion, 0);//buscamos en la lista listos
         if (retorno_kill != 0) {
             retorno_kill = kill_push(listos, atoi(numero_de_kill), terminados, ejecucion, 1);//buscamos en el nodo en ejecucion
             if (retorno_kill != 0) {
-                    mostrar_mensajes_ejecucion(1);//si no se encontro en ningun lado
+                    respuesta_a_kill(1);//si no se encontro en ningun lado
                 
             }else {//si se encontro en ejecucion
-                *bandera = 0;
                 *programa_cargado = 0;
-                mostrar_mensajes_ejecucion(2);
+                respuesta_a_kill(2);
                 
                
             }
         }else{//si se encontro en listos
-            mostrar_mensajes_ejecucion(3);
+            respuesta_a_kill(3);
             
         }
     }
 
     if (*programa_cargado == 0) {
          //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
+         MeterNuevos_Listos(nuevos, listos);
         Actualizar_W();
         Actualizar_planificacion(listos, PBase, W);
         //limpiando ejecucion
@@ -537,17 +546,17 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
         *ejecucion = pull(listos);//pull es para extraccion listos a ejecucion
         if (*ejecucion != NULL) {
             *programa_cargado = 1;
-            *bandera = 1;
+            *HazPush = 0;
         }
          
     }
 
     if (*programa_cargado == 1) {
-        if (*bandera == 0) {
-            push(terminados, *ejecucion, listos);//push es para extraer de ejecucion a terminados
+        if (*HazPush == 1) {
+            push(terminados, ejecucion, listos);//push es para extraer de ejecucion a terminados
             *programa_cargado = 0;
             //chequeo para ver si nuevos se puede meter a listos
-            MeterNuevos_Listos(nuevos, listos, ejecucion);
+            MeterNuevos_Listos(nuevos, listos);
             
         }
     }
@@ -559,6 +568,8 @@ void printData(int contador_usuarios, int limite, int limiteTMS){
     mvprintw(28, 150, "sleep %d", global_sleep);
     mvprintw(28, 170, "                 ");
     mvprintw(28, 170, "Usuarios %d", contador_usuarios);
+    mvprintw(28, 185, "     ");
+    mvprintw(28, 185, "W:%.2f", W);
     mvprintw(28, 200, "                   ");
     mvprintw(28, 200, "LimiteSwap: %d", limite);
     mvprintw(28, 220, "                   ");
@@ -684,13 +695,10 @@ int main(void) {
     
     char comando[60] = {0};//comando o cadena donde se leera lo escrito
     int posicion_de_char = 0;//posicion de un char en la cadena (j)
-    int recibe_valores = 0;//recibe el retorno de atiende shell
+    int respuesta_a_shell = 0;//recibe el retorno de atiende shell
     int nivel_de_prompt = 0;//en que altura se escribe el prompt (y)
-    int bandera = 0;//para saber si el archivo se puede seguir leyendo con normalidad
-    int ejecucion_a_comandos = 0;//variable que recibe valores del retorno mostrar_respuesta_a_comandos
+    int HazPush = 0;//para saber si el programa cargado se le hará push
     int programa_cargado = 0;//variable de control para realizar pull y push
-    int retorno_kill = 0;//este sirve para  recibir el valor retornado por kill
-    char archivo_valido[200];//variable que recibe valores de la variable global archivo
     int UltimoPuntoEnSwap = 0;
     int UltimoPuntoEnTMS = 0;
 
@@ -707,31 +715,32 @@ int main(void) {
     InicializarMapa();
 
     
-    while (recibe_valores != 10) {
+    while (respuesta_a_shell != 10) {
         
-
-        recibe_valores = atiende_shell(comando, &posicion_de_char, &nivel_de_prompt);
-        ejecucion_a_comandos = mostrar_respuesta_a_comandos(recibe_valores, comando, &posicion_de_char, &nivel_de_prompt);
-        ImprimirDatosSwap(ejecucion_a_comandos, &UltimoPuntoEnSwap);
-        ImprimirDatosTMS(ejecucion_a_comandos, &UltimoPuntoEnTMS);
+        
+        respuesta_a_shell = atiende_shell(comando, &posicion_de_char, &nivel_de_prompt);
+        mostrar_respuesta_a_comandos(respuesta_a_shell, comando, &posicion_de_char, &nivel_de_prompt);
+        ImprimirDatosSwap(respuesta_a_shell, &UltimoPuntoEnSwap);
+        ImprimirDatosTMS(respuesta_a_shell, &UltimoPuntoEnTMS);
         imprimir_ejecion(ejecucion, 140, 3);
         imprimir_listos(listos, 82, 35);
         imprimir_terminados(terminados, 140, 35);
         imprimir_nuevos(nuevos, 1, 56);
         printData(contador_usuarios, UltimoPuntoEnSwap, UltimoPuntoEnTMS);
 
-        manejar_procesos(&listos, &terminados, &ejecucion, &nuevos,  &bandera, &programa_cargado, ejecucion_a_comandos, archivo_valido, retorno_kill);
-        if (bandera==1){//si bandera es 1 entonces podemos seguir leyendo el archivo
+        manejar_procesos(&listos, &terminados, &ejecucion, &nuevos,  &HazPush, &programa_cargado, respuesta_a_shell);
+        if (programa_cargado==1){//si HazPush es 1 entonces podemos seguir leyendo el archivo
             usleep(global_sleep); //espera para ver cada lectura del archivo
-            leer_swap(&ejecucion, &bandera, ejecucion->programa, &quantum, &programa_cargado, &listos);        
+            leer_swap(&ejecucion, &HazPush, &quantum, &programa_cargado, &listos);        
             }
         
 
-        contador_de_usuarios(&listos, &ejecucion, &contador_usuarios);
+        contador_usuarios = contador_de_usuarios(&listos, &ejecucion);
         if (contador_usuarios == 0){
             W = 0;
         }
         Actualizar_W();
+        
 
         
         
