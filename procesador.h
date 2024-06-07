@@ -23,6 +23,7 @@ struct PCB
     int P; //Prioridad del proceso.
     int KCPU; //Contador de uso de CPU por proceso.
     int KCPUxU; //Contador de uso de CPU por usuario.
+    int LimitePC;
     struct PCB *sig; //siguiente estructura o nodo
     
 };
@@ -580,8 +581,12 @@ void impresionPCB(struct PCB *pcb, int DRS){
         mvprintw(28, 100, "TMP:                                     ");
         int x = 100;
         for (int i = 0; i < pcb->TmpSize; i++) {
-            mvprintw(28, x+5, "%d-%03X  ",i, pcb->TMP[i]);
+            
+            mvprintw(28, x+5, "%03X  ",pcb->TMP[i]);
             x+=6;
+            if(i >= 4){
+                break;
+            }
         }
 
     refresh();
