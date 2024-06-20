@@ -187,7 +187,7 @@ int BuscarHermanosTMM(struct PCB **ejecucion, struct PCB **listos, int *hermanoP
 }
 
 
-void AgregarPIDEnTMM(struct PCB **ejecucion, int j, int marco, struct PCB **listos) {
+void AgregarPIDEnTMM(struct PCB **ejecucion,  int marco, struct PCB **listos) {
     for (int i = 0; i < TOTAL_MARCOS_RAM; i++) {
         if (TMM[i].pid == 0) {
             // verificar si un hermano está cargado
@@ -222,7 +222,7 @@ void AgregarPIDEnTMM(struct PCB **ejecucion, int j, int marco, struct PCB **list
 
 
 
-void cambiarPIDEnTMM(struct PCB **ejecucion, struct PCB **listos, int j, int marco) {
+void cambiarPIDEnTMM(struct PCB **ejecucion, struct PCB **listos, int marco) {
     //buscamos si el que estamos desalojando esta en listos
     int encontrado = 0;
     //desalojamos
@@ -298,7 +298,7 @@ void cambiarPIDEnTMM(struct PCB **ejecucion, struct PCB **listos, int j, int mar
 
 
 
-void AlgoritmoReloj(struct PCB **ejecucion, struct PCB **listos, int j, int marco){
+void AlgoritmoReloj(struct PCB **ejecucion, struct PCB **listos, int marco){
     while(true) {
         if (indiceReloj >= TOTAL_MARCOS_RAM) {
             indiceReloj = 0;
@@ -308,7 +308,7 @@ void AlgoritmoReloj(struct PCB **ejecucion, struct PCB **listos, int j, int marc
             TMM[indiceReloj].referencia = 0;
         } else {
             
-            cambiarPIDEnTMM(ejecucion, listos, j, marco);
+            cambiarPIDEnTMM(ejecucion, listos, marco);
             TMM[indiceReloj].referencia = 1;
             indiceReloj++;
             break; // Salir del bucle una vez que se ha cambiado el PID
@@ -382,17 +382,17 @@ int quitarPIDTMM(int pid){
     return 0;
 }
 
-void agregarTMM(struct PCB **ejecucion, struct PCB **listos,  int j, int marco){
+void agregarTMM(struct PCB **ejecucion, struct PCB **listos,   int marco){
      if (EspacioEnRAM() == 200){
         
-            AgregarPIDEnTMM(ejecucion, j, marco, listos);
+            AgregarPIDEnTMM(ejecucion, marco, listos);
         
 
      }//si no hay espacio en la ram activa algoritmo de reloj
      else{
        
         
-            AlgoritmoReloj(ejecucion, listos, j,  marco);
+            AlgoritmoReloj(ejecucion, listos,  marco);
         
      }
      
