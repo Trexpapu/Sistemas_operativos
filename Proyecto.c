@@ -572,7 +572,7 @@ int leer_swap(struct PCB **ejecucion, int *HazPush, int *quantum, int *programa_
     //aqui llamamos las funciones para actualizar la ram, ya que hemos agarrado un nuevo proceso para meter a ejecucion
     //pasar cada marco
     int j1 = 0;
-    if((*ejecucion)->TMP.presencia[marco] == 0){
+    if((*ejecucion)->TMP.presencia[marco] == 0 && CargarSiPresenciasIguales(ejecucion, listos) != 200){
         mvprintw(40, 1, "                                        ");
         mvprintw(40, 1, "Fallo de página    ");
         refresh();
