@@ -556,7 +556,7 @@ void imprimirTMP(struct PCB **pcb, int opcion){
 
 
 
-int leer_swap(struct PCB **ejecucion, int *HazPush, int *quantum, int *programa_cargado, struct PCB **listos, int opcion) {
+int leer_ram(struct PCB **ejecucion, int *HazPush, int *quantum, int *programa_cargado, struct PCB **listos, int opcion) {
 
 
     imprimirTMP(ejecucion, opcion);
@@ -574,15 +574,15 @@ int leer_swap(struct PCB **ejecucion, int *HazPush, int *quantum, int *programa_
 
     //aqui llamamos las funciones para actualizar la ram, ya que hemos agarrado un nuevo proceso para meter a ejecucion
     //pasar cada marco
-    int j1 = 0;
+    
     if((*ejecucion)->TMP.presencia[marco] == 0 && CargarSiPresenciasIguales(ejecucion, listos) != 200){
         mvprintw(40, 1, "                                        ");
         mvprintw(40, 1, "Fallo de página    ");
         refresh();
-        agregarTMM(ejecucion, listos, j1, marco);
+        agregarTMM(ejecucion, listos, marco);
     }
     
-    j1++;
+    
 
     //ahora leer de la ram
     char *instruccion = &RAM[(*ejecucion)->TMP.RAM[marco] * 16 * 32 + offset * 32]; //aqui leemos la ram
@@ -901,7 +901,7 @@ int main(void) {
         manejar_procesos(&listos, &terminados, &ejecucion, &nuevos,  &HazPush, &programa_cargado, respuesta_a_shell);
         if (programa_cargado==1){//si HazPush es 1 entonces podemos seguir leyendo el archivo
             usleep(global_sleep); //espera para ver cada lectura del archivo
-            leer_swap(&ejecucion, &HazPush, &quantum, &programa_cargado, &listos, respuesta_a_shell);        
+            leer_ram(&ejecucion, &HazPush, &quantum, &programa_cargado, &listos, respuesta_a_shell);        
             }
         
 
