@@ -5,6 +5,13 @@
 #include <unistd.h>
 #include <ctype.h> // Para la función toupper
 #include <stdlib.h>
+typedef struct {
+    int *SWAP;      
+    int *RAM; 
+    int *presencia;
+  
+} TMPDATA;
+
 
 struct PCB
 {
@@ -15,8 +22,8 @@ struct PCB
     int DX;
     int PC;
     int PID;
-    int TMP[4096]; // Tabla de Mapas de Procesos
     int TmpSize; // Total de lineas en el archivo / 16, si hay decimales o residuo, se suma uno al resultado entero (función techo).
+    TMPDATA TMP; // Tabla de Mapas de Procesos
     char fileName[256];
     FILE *programa; //puntero a un archivo
     int UID; //User IDentifier (Identificador de usuario).
@@ -533,7 +540,7 @@ int validar_operaciones_de_archivo(struct PCB *pcb) {
     return 0;
 }
 
-void impresionPCB(struct PCB *pcb, int DRS){
+void impresionPCB(struct PCB *pcb, int DRS, int marco){
 
         mvprintw(0, 85, "AX:     ");
         mvprintw(0, 85, "AX: %d", pcb->AX);
@@ -557,13 +564,13 @@ void impresionPCB(struct PCB *pcb, int DRS){
         mvprintw(20, 110, "IR                  ");
         mvprintw(20, 110, "IR: %s", pcb->IR);//imprimimos el IR, cada linea de archivo
 
-        mvprintw(25, 100, "PC:   ");
-        mvprintw(25, 100, "PC: %d, DRS: [%04lX]", pcb->PC, DRS);//imprimimos el PC, contador de las lineas de archivo
+        mvprintw(28, 100, "PC:   ");
+        mvprintw(28, 100, "PC: %d, DRS: [%04lX]", pcb->PC, DRS);//imprimimos el PC, contador de las lineas de archivo
 
         mvprintw(15, 100, "UID:      ");
         mvprintw(15, 100, "UID: %d", pcb->UID);
 
-        mvprintw(10, 100, "P:    ");
+        mvprintw(10, 100, "P:     ");
         mvprintw(10, 100, "P: %d", pcb->P);
         
         mvprintw(5, 100, "KCPU:     ");
@@ -576,18 +583,11 @@ void impresionPCB(struct PCB *pcb, int DRS){
         mvprintw(28, 85, "TmpSize:    ");
         mvprintw(28, 85, "TmpSize:%d", pcb->TmpSize);
 
+        mvprintw(23, 85, "Marco:      ");
+        mvprintw(23, 85, "Marco :%d", marco);
 
-        // Imprimir valores de la TMP
-        mvprintw(28, 100, "TMP:                                     ");
-        int x = 100;
-        for (int i = 0; i < pcb->TmpSize; i++) {
-            
-            mvprintw(28, x+5, "%03X  ",pcb->TMP[i]);
-            x+=6;
-            if(i >= 4){
-                break;
-            }
-        }
+
+        
 
     refresh();
 }
@@ -608,7 +608,7 @@ int verificar_archivo(char archivo[100]){
 void prints_procesador(){
         mvprintw(20, 110, "IR     ");
 
-        mvprintw(25, 100, "PC:   ");
+        mvprintw(28, 100, "PC:   ");
 
         mvprintw(0, 85, "AX:     ");
 
@@ -617,12 +617,14 @@ void prints_procesador(){
         mvprintw(10, 85, "CX:      ");
 
         mvprintw(15, 85, "DX:       ");
+        
+        mvprintw(23, 85, "Marco:    ");
 
         mvprintw(25, 85, "PID:      ");
 
         mvprintw(28, 85, "TmpSize:    ");
 
-        mvprintw(28, 100, "TMP:         ");
+        
 
         mvprintw(15, 100, "UID:     ");
 
