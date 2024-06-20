@@ -152,6 +152,7 @@ int atiende_shell(char *comando, int *j, int *y) {
                     mvprintw(*y, 0, "                                                              ");
                     if (global_sleep < 2400000){
                         global_sleep += 100000;
+                        
                     }
                 }else if(comando[*j] == 68){//flecha izquierda
                     comando[*j] = '\0';
@@ -162,7 +163,9 @@ int atiende_shell(char *comando, int *j, int *y) {
                     mvprintw(*y, 0, "                                                              ");
                     if (global_sleep > 100000){
                         global_sleep -= 100000;
+                        
                     }
+                    
                 }else if(comando[*j] == 65){
 
                     comando[*j] = '\0';
@@ -596,11 +599,10 @@ int leer_swap(struct PCB **ejecucion, int *HazPush, int *quantum, int *programa_
     if ((*ejecucion)->PC < Limite_pc) { // verificamos que todavia esta dentro de los limites del archivo
 
 
-    memcpy((*ejecucion)->IR, instruccion, sizeof((*ejecucion)->IR)); // aqui copiamos el contenido leido de ram a ir
+    memcpy((*ejecucion)->IR, instruccion, sizeof((*ejecucion)->IR)); // aqui copiamos el contenido leido de ram a IR
 
     //cambiar la referencia del marco a uno debido a que se leyo ahi
     int indice = (*ejecucion)->TMP.RAM[marco];
-   
     TMM[indice].referencia = 1;
         
         x = validar_operaciones_de_archivo(*ejecucion); // Ejecutamos función pasando la estructura
@@ -682,12 +684,13 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
 
     if (*programa_cargado == 0) {
          //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
+         //limpiando ejecucion
+        mvprintw(3, 140, "                                                                 -");
+        refresh();
         MeterNuevos_Listos(nuevos, listos, ejecucion);
         Actualizar_W();
         Actualizar_planificacion(listos, PBase, W);
-        //limpiando ejecucion
-        mvprintw(3, 140, "                                                                 -");
-        refresh();
+        
         *ejecucion = pull(listos);//pull es para extraccion listos a ejecucion
         if (*ejecucion != NULL) {
             *programa_cargado = 1;
