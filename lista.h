@@ -56,16 +56,18 @@ void CargarRAM(struct PCB **pcb, int MarcoPC, int marcoLibre) {
 }
 
 
-int buscarHermanosRAM(struct PCB **ejecucion, struct PCB **listos, int marco){
-    int uid = (*ejecucion)->UID;
+int agregarHermanosRAM(struct PCB **nuevoNodo, struct PCB **listos, struct PCB **ejecucion){
+    int uid = (*nuevoNodo)->UID;
     char fileName[256];
-    strcpy(fileName, (*ejecucion)->fileName);
+    strcpy(fileName, (*nuevoNodo)->fileName);
+
+    //buscar en ejecucion
     struct PCB *actual = *listos;
     while(actual != NULL){
         if(actual->UID == uid && strcmp(actual->fileName, fileName) == 0){
             for(int i = 0; i< actual->TmpSize; i++){
-                (*ejecucion)->TMP.RAM[i] = actual->TMP.RAM[i];
-                (*ejecucion)->TMP.presencia[i] = actual->TMP.presencia[i];
+                (*nuevoNodo)->TMP.RAM[i] = actual->TMP.RAM[i];
+                (*nuevoNodo)->TMP.presencia[i] = actual->TMP.presencia[i];
             }
 
             return 200;
@@ -73,13 +75,94 @@ int buscarHermanosRAM(struct PCB **ejecucion, struct PCB **listos, int marco){
         
         actual = actual->sig;
     }
+    //buscar en listos
+    struct PCB *actual2 = *ejecucion;
+    if(actual2 != NULL){
+        if(actual2->UID == uid && strcmp(actual2->fileName, fileName) == 0){
+            for(int i = 0; i< actual2->TmpSize; i++){
+                (*nuevoNodo)->TMP.RAM[i] = actual2->TMP.RAM[i];
+                (*nuevoNodo)->TMP.presencia[i] = actual2->TMP.presencia[i];
+            }
+
+            return 200;
+        }
+    }
+
 
     return 0;
 }
 
 
+int CargarSiPresenciasIguales(struct PCB **ejecucion, struct PCB **listos){
+    int uid = (*ejecucion)->UID;
+    char fileName[256];
+    strcpy(fileName, (*ejecucion)->fileName);
+    struct PCB *actual = *listos;
+    while(actual != NULL){
+        if(actual->UID == uid && strcmp(actual->fileName, fileName) == 0){
+            for(int i = 0; i< actual->TmpSize; i++){
+                if(actual->TMP.presencia[i] != (*ejecucion)->TMP.presencia[i]){
+                    return 200;
+                }
+            }
+            
+        }
+        
+        actual = actual->sig;
+    }
 
-void AgregarPIDEnTMM(struct PCB **ejecucion, int j, int marco){
+    return 0;
+}
+void copiarRAMyPresenciaEnListosNoReloj(struct PCB **nodo_alterado, struct PCB **listos){
+    int uid = (*nodo_alterado)->UID;
+    char fileName[256];
+    strcpy(fileName, (*nodo_alterado)->fileName);
+    struct PCB *actual = *listos;
+    while(actual != NULL){
+        if(actual->UID == uid && strcmp(actual->fileName, fileName) == 0){
+            for(int i = 0; i<actual->TmpSize; i++){
+                actual->TMP.RAM[i] = (*nodo_alterado)->TMP.RAM[i];
+                actual->TMP.presencia[i] = (*nodo_alterado)->TMP.presencia[i];
+            }
+        }
+
+
+        actual = actual->sig;
+    }
+}
+
+void copiarRAMyPresenciaEnListosSiReloj(struct PCB **nodo_alterado, struct PCB **listos, struct PCB **ejecucion){
+    
+    int uid = (*nodo_alterado)->UID;
+    char fileName[256];
+    strcpy(fileName, (*nodo_alterado)->fileName);
+    //buscamos los hermanos en listos
+    struct PCB *actual = *listos;
+    while(actual != NULL){
+        if(actual->UID == uid && strcmp(actual->fileName, fileName) == 0){
+            for(int i = 0; i<actual->TmpSize; i++){
+                actual->TMP.RAM[i] = (*nodo_alterado)->TMP.RAM[i];
+                actual->TMP.presencia[i] = (*nodo_alterado)->TMP.presencia[i];
+            }
+        }
+
+
+        actual = actual->sig;
+    }
+    //para ejecucion
+    struct PCB *actual2 = *ejecucion;
+    if(actual2 != NULL){
+        if(actual2->UID == uid && strcmp(actual2->fileName, fileName) == 0){
+            for(int i = 0; i<actual2->TmpSize; i++){
+                actual2->TMP.RAM[i] = (*nodo_alterado)->TMP.RAM[i];
+                actual2->TMP.presencia[i] = (*nodo_alterado)->TMP.presencia[i];
+            }
+        }
+    }
+}
+
+
+void AgregarPIDEnTMM(struct PCB **ejecucion, int j, int marco, struct PCB **listos){
    
     
     for(int i = 0; i< TOTAL_MARCOS_RAM; i++){
@@ -91,6 +174,9 @@ void AgregarPIDEnTMM(struct PCB **ejecucion, int j, int marco){
                 (*ejecucion)->TMP.RAM[marco] = i;
                 (*ejecucion)->TMP.presencia[marco] = 1;
                 CargarRAM(ejecucion, marco, i);
+                copiarRAMyPresenciaEnListosNoReloj(ejecucion, listos);
+                
+
 
                 
                 return;
@@ -109,9 +195,7 @@ void AgregarPIDEnTMM(struct PCB **ejecucion, int j, int marco){
 
 
 void cambiarPIDEnTMM(struct PCB **ejecucion, struct PCB **listos, int j, int marco) {
-    //buscar el pid en la lista listos
-    int uid;
-    char filename[256];
+    
     int encontrado = 0;
     //desalojamos
     struct PCB *actual = *listos;
@@ -122,9 +206,15 @@ void cambiarPIDEnTMM(struct PCB **ejecucion, struct PCB **listos, int j, int mar
                 if(actual->TMP.RAM[i] == indiceReloj){ // buscamos el marco en ram que sea igual al marco que encontramos en la tmm
                     actual->TMP.RAM[i] = -1;//desalojamos el marco en la tmp
                     actual->TMP.presencia[i] = 0;//marcamos presencia en la tmp en cero
+                    encontrado = 1;
+
                 }
             }
-            
+
+            //reflejmaos el cambio para todos los hermanos
+            if(encontrado == 1){
+                copiarRAMyPresenciaEnListosSiReloj(&actual, listos, ejecucion);
+            }
             
         }
 
@@ -139,6 +229,8 @@ void cambiarPIDEnTMM(struct PCB **ejecucion, struct PCB **listos, int j, int mar
     (*ejecucion)->TMP.presencia[marco] = 1;
     (*ejecucion)->TMP.RAM[marco] = indiceReloj;
     CargarRAM(ejecucion, marco, indiceReloj);
+
+    copiarRAMyPresenciaEnListosNoReloj(ejecucion, listos);
 
 }
 
@@ -167,7 +259,58 @@ void AlgoritmoReloj(struct PCB **ejecucion, struct PCB **listos, int j, int marc
 }
 
 
+int HeredarHermanosTMM(struct PCB **listos, char *fileName, int UID, struct PCB **ejecucion, int opcion) {
+    if (opcion == 0) { // Buscar en listos y ejecucion
+        struct PCB *actual = *listos;
+        while (actual != NULL) {
+            if (UID == actual->UID && strcmp(fileName, actual->fileName) == 0) { // En efecto son procesos hermanos
+                for (int i = 0; i < actual->TmpSize; i++) { // Buscamos en cada marco de la RAM
+                    if (actual->TMP.presencia[i] == 1) { // Solo si el marco está presente
+                        int marcoRAM = actual->TMP.RAM[i];
+                        TMM[marcoRAM].pid = actual->PID;
+                        TMM[marcoRAM].referencia = 1;
+                    }
+                }
+                return 200;
+            }
+            actual = actual->sig;
+        }
+        
 
+        struct PCB *referencia = *ejecucion;
+        
+        if (referencia != NULL) {
+            if (UID == (referencia)->UID && strcmp(fileName, (referencia)->fileName) == 0) { // En efecto son procesos hermanos
+                for (int i = 0; i < (referencia)->TmpSize; i++) { // Buscamos en cada marco de la RAM
+                    if ((referencia)->TMP.presencia[i] == 1) { // Solo si el marco está presente
+                        int marcoRAM = (referencia)->TMP.RAM[i];
+                        TMM[marcoRAM].pid = (referencia)->PID;
+                        TMM[marcoRAM].referencia = 1;
+                    }
+                }
+                return 200;
+            }
+        }
+    } else if (opcion == 1) { // Buscar solo en listos
+        struct PCB *actual = *listos;
+        while (actual != NULL) {
+            if (UID == actual->UID && strcmp(fileName, actual->fileName) == 0) { // En efecto son procesos hermanos
+                for (int i = 0; i < actual->TmpSize; i++) { // Buscamos en cada marco de la RAM
+                    if (actual->TMP.presencia[i] == 1) { // Solo si el marco está presente
+                        int marcoRAM = actual->TMP.RAM[i];
+                        TMM[marcoRAM].pid = actual->PID;
+                        TMM[marcoRAM].referencia = 1;
+                    }
+                }
+                return 200;
+            }
+
+            actual = actual->sig;
+        }
+    }
+    
+    return 0;
+}
 
 int quitarPIDTMM(int pid){
     for(int i = 0; i< TOTAL_MARCOS_RAM;i++){
@@ -183,7 +326,7 @@ int quitarPIDTMM(int pid){
 void agregarTMM(struct PCB **ejecucion, struct PCB **listos,  int j, int marco){
      if (EspacioEnRAM() == 200){
         
-            AgregarPIDEnTMM(ejecucion, j, marco);
+            AgregarPIDEnTMM(ejecucion, j, marco, listos);
         
 
      }//si no hay espacio en la ram activa algoritmo de reloj
@@ -438,8 +581,10 @@ int kill_push(struct PCB **listos, int pid, struct PCB **terminados, struct PCB 
                 
             }
 
-            //liberar TMM
-            quitarPIDTMM(pid);
+            if(HeredarHermanosTMM(listos,fileName, UID, ejecucion, 0) != 200){
+                //liberar TMM
+                quitarPIDTMM(pid);
+            }
 
             return 0;
         }
@@ -485,8 +630,10 @@ int kill_push(struct PCB **listos, int pid, struct PCB **terminados, struct PCB 
                 QuitarPidDelTMS(pid);
                 
             }
-            //liberar TMM
-            quitarPIDTMM(pid);
+            if(HeredarHermanosTMM(listos,fileName, UID, ejecucion, 0) != 200){
+                //liberar TMM
+                quitarPIDTMM(pid);
+            }
 
         } else {
             return -1; // No se encontró el PID en la lista
@@ -535,8 +682,10 @@ int kill_push(struct PCB **listos, int pid, struct PCB **terminados, struct PCB 
                 QuitarPidDelTMS(pid);
                 
             }
-            //liberar TMM
-            quitarPIDTMM(pid);
+            if(HeredarHermanosTMM(listos,fileName, UID, ejecucion, 0) != 200){
+                //liberar TMM
+                quitarPIDTMM(pid);
+            }
 
             return 0;
         }else{
@@ -661,8 +810,8 @@ void re_insert(struct PCB **listos, struct PCB **ejecucion) {
 
     // Si la lista está vacía, el nuevo nodo se convierte en la cabeza
     if (*listos == NULL) {
+        kill_ejecucion(ejecucion);
         *listos = nuevoNodo;
-        kill_ejecucion(ejecucion); 
         refresh();
         return;
     }
@@ -989,6 +1138,7 @@ int insert(struct PCB **listos, char *nombrePrograma, int Pbase, int user_id, st
 
 
         if(BuscaHermanosInsertar(listos, nuevoNodo, ejecucion) == 200){//si tiene hermanos
+            agregarHermanosRAM(&nuevoNodo, listos, ejecucion);  
             
             AgregarListos(listos, nuevoNodo);
 
@@ -1029,8 +1179,10 @@ void push(struct PCB **terminados, struct PCB **ejecucion, struct PCB **listos) 
             QuitarPidDelTMS(PID);
                 
     }
-    //liberar TMM
-    quitarPIDTMM(PID);
+    if(HeredarHermanosTMM(listos,fileName, UID, ejecucion, 1) != 200){
+                //liberar TMM
+            quitarPIDTMM(PID);
+    }
     // Crear un nuevo nodo de PCB
     struct PCB *nuevoNodo = (struct PCB*)malloc(sizeof(struct PCB));
     if(nuevoNodo == NULL){
@@ -1127,7 +1279,8 @@ void imprimir_terminados(struct PCB *cabeza, int x, int eje_y) {
         // Imprime los valores del nodo actual
         mvprintw(eje_y, x, "PID:%d, Programa:%s, AX:%d, BX:%d, CX:%d, DX:%d, PC:%d, UID:%d", actual->PID, actual->fileName, actual->AX, actual->BX, actual->CX, actual->DX, actual->PC, actual->UID);
         eje_y++;
-        mvprintw(eje_y, x, "KCPUxU:%d, KCPU:%d, P:%d, IR:", actual->KCPUxU, actual->KCPU, actual->P);
+        int marco = actual->PC / 16;
+        mvprintw(eje_y, x, "KCPUxU:%d, KCPU:%d, P:%d, Marco:%d, IR:", actual->KCPUxU, actual->KCPU, actual->P, marco);
         // Imprime los caracteres de IR uno a uno
         for (int i = 0; actual->IR[i] != '\0'; i++) {
             addch(actual->IR[i]);
@@ -1193,7 +1346,6 @@ int contador_de_usuarios(struct PCB **listos, struct PCB **ejecucion){
 
 
 
-
 void MeterNuevos_Listos(struct PCB **nuevos, struct PCB **listos, struct PCB **ejecucion) {
     if (nuevos == NULL || *nuevos == NULL) {
         return; // No hay nada que procesar si nuevos es NULL o la lista de nuevos está vacía
@@ -1219,7 +1371,7 @@ void MeterNuevos_Listos(struct PCB **nuevos, struct PCB **listos, struct PCB **e
                 // Si actual está en el medio o final de la lista
                 anterior->sig = siguiente;
             }
-            // Libera el nodo actual de la lista de nuevos
+            // Liberar el nodo actual de la lista de nuevos
             actual->sig = NULL;
         } else {
             // Avanzar los punteros
@@ -1227,17 +1379,18 @@ void MeterNuevos_Listos(struct PCB **nuevos, struct PCB **listos, struct PCB **e
         }
         actual = siguiente; // Mover al siguiente nodo
 
+    }
 
         if (MetioNuevosAListos == 1) {
-
             struct PCB *actual2 = *nuevos;
             struct PCB *anterior2 = NULL;
             MetioNuevosAListos = 0;
 
             while (actual2 != NULL) {
                 struct PCB *siguiente2 = actual2->sig; // Guardar el siguiente nodo antes de modificar los punteros
-                if (BuscaHermanosInsertar(listos, actual2, ejecucion) == 200) { // si tiene hermanos
+                if (BuscaHermanosInsertar(listos, actual2, ejecucion) == 200) { // Si tiene hermanos
                     // Agregar el nodo actual a la lista de listos
+                    agregarHermanosRAM(&actual2, listos, ejecucion); 
                     AgregarListos(listos, actual2);
 
                     // Eliminar el nodo actual de la lista de nuevos
@@ -1248,7 +1401,7 @@ void MeterNuevos_Listos(struct PCB **nuevos, struct PCB **listos, struct PCB **e
                         // Si actual2 está en el medio o final de la lista
                         anterior2->sig = siguiente2;
                     }
-                    // Libera el nodo actual de la lista de nuevos
+                    // Liberar el nodo actual de la lista de nuevos
                     actual2->sig = NULL;
                 } else {
                     // Avanzar los punteros
@@ -1257,8 +1410,5 @@ void MeterNuevos_Listos(struct PCB **nuevos, struct PCB **listos, struct PCB **e
                 actual2 = siguiente2; // Mover al siguiente nodo
             }
         }
-
-    }
-
     
 }
