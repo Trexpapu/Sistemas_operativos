@@ -570,7 +570,7 @@ void impresionPCB(struct PCB *pcb, int DRS, int marco){
         mvprintw(15, 100, "UID:      ");
         mvprintw(15, 100, "UID: %d", pcb->UID);
 
-        mvprintw(10, 100, "P:     ");
+        mvprintw(10, 100, "P:                   ");
         mvprintw(10, 100, "P: %d", pcb->P);
         
         mvprintw(5, 100, "KCPU:     ");
