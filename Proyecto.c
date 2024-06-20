@@ -82,10 +82,10 @@ int validar_comandos(char *comando){
                     }else if(strcmp(accion, "kill") == 0){
                         return 437;//kill necesita un numero entero como parametro
 
-                    }else if(strcmp(accion, "sig") == 0){
+                    }else if(strcmp(accion, "swapd") == 0){
                         return 188;//cambiar la paginacion de swap
 
-                    }else if(strcmp(accion, "ant") == 0){
+                    }else if(strcmp(accion, "swapa") == 0){
                         return 189;//cambiar la paginacion de swap
 
                     }else if(strcmp(accion, "tmsd") == 0){
@@ -94,6 +94,18 @@ int validar_comandos(char *comando){
                     }else if(strcmp(accion, "tmsa") == 0){
                         return 664;//cambiar la paginacion de swap
 
+                    }else if(strcmp(accion, "ramd") == 0){
+                        return 2001;
+                    }else if(strcmp(accion, "rama") == 0){
+                        return 2002;
+                    }else if(strcmp(accion, "tmmd") == 0){
+                        return 2003;
+                    }else if(strcmp(accion, "tmma") == 0){
+                        return 2004;
+                    }else if(strcmp(accion, "tmpd") == 0){
+                        return 2010;
+                    }else if(strcmp(accion, "tmpa") == 0){
+                        return 2011;
                     }else{
                         return 400;// printf("comando no reconocido\n");
                     }
@@ -217,7 +229,7 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
 
             case 189:
                 mvprintw(ejey, ejex, "                                                                                                               ");
-                mvprintw(ejey, ejex, "Paginacón hacia atras SWAP");
+                mvprintw(ejey, ejex, "Paginacón hacia atrás SWAP");
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
@@ -245,7 +257,7 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
 
             case 664:
                 mvprintw(ejey, ejex, "                                                                                                               ");
-                mvprintw(ejey, ejex, "Paginación hacia atras TMS");
+                mvprintw(ejey, ejex, "Paginación hacia atrás TMS");
                 memset(comando, 0, (*j));
                 (*j) = 0;
                 mvprintw((*y), 0, "PROMPT > %s", comando);
@@ -299,6 +311,58 @@ int mostrar_respuesta_a_comandos(int opcion, char *comando, int *j, int *y){
                 mvprintw(ejey, ejex, "Error al abrir el archivo");
                 memset(comando, 0, (*j));
                 (*j) = 0; 
+                break;
+
+            case 2001:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Paginación hacia delante RAM");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                
+                break;
+
+            case 2002:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Paginación hacia atrás RAM");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                break;
+
+            case 2003:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Paginación hacia delante TMM");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                break;
+            
+            case 2004:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Paginación hacia atrás TMM");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                
+                break;
+
+            case 2010:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Paginación hacia delante TMP");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                
+                break;
+
+            case 2011:
+                mvprintw(ejey, ejex, "                                                                                                               ");
+                mvprintw(ejey, ejex, "Paginación hacia atrás TMP");
+                memset(comando, 0, (*j));
+                (*j) = 0;
+                mvprintw((*y), 0, "PROMPT > %s", comando);
+                
                 break;
 
 
@@ -421,47 +485,123 @@ void Actualizar_W(){
         }
     refresh();
 }
+int inicioTMP = 0;
+int finTMP = 4;
 
 
 
-int leer_swap(struct PCB **ejecucion, int *HazPush, int *quantum, int *programa_cargado, struct PCB **listos) {
-
-    char NombrePrograma[256];
-    strcpy(NombrePrograma, (*ejecucion)->fileName);
-    FILE *programa = fopen(NombrePrograma, "r");
+void imprimirTMP(struct PCB **pcb, int opcion){
 
 
-    char linea[256];
-    int Limite_pc = 0;
-
-    // Leer cada línea del archivo del programa
-    while (fgets(linea, sizeof(linea), programa) != NULL){
-        Limite_pc++;
+    if(opcion == 2010 && inicioTMP < 4096){
+        inicioTMP+= 4;
+        finTMP += 4;
+    }else if(opcion == 2011 && inicioTMP >0){
+        inicioTMP -= 4;
+        finTMP -= 4;
     }
-    fclose(programa);
 
-    
+    mvprintw(7, 160, "TMP         ");
+    // Imprimir valores de la TMP
+        mvprintw(8, 150, "SWAP");
+        int y = 10;
 
-   
+        for (int i = inicioTMP; i < finTMP; i++) {
 
+            if(i >= (*pcb)->TmpSize){
+                break;
+            }
+            mvprintw(y, 150, "                               ");
+            mvprintw(y, 150, "%03X",(*pcb)->TMP.SWAP[i]);
+            y+=1;
+            
+            
+        }
+        mvprintw(8, 160, "RAM");
+        int y1 = 10;
+        for (int i = inicioTMP; i < finTMP; i++) {
+
+            if(i >= (*pcb)->TmpSize){
+                break;
+            }
+            mvprintw(y1, 160, "                                 ");
+            if((*pcb)->TMP.RAM[i] == -1){
+                mvprintw(y1, 160, "FF");
+
+            }else{
+                mvprintw(y1, 160, "%03X",(*pcb)->TMP.RAM[i]);
+            }
+            y1 += 1;
+           
+            
+        }
+        mvprintw(8, 170, "PRE");
+        int y2 = 10;
+        for (int i = inicioTMP; i < finTMP; i++) {
+
+            if(i >= (*pcb)->TmpSize){
+                break;
+            }
+            mvprintw(y2, 170, "                                             ");
+            mvprintw(y2, 170, "%d",(*pcb)->TMP.presencia[i]);
+            y2 +=1;
+            
+           
+        }
+}
+
+
+
+
+int leer_swap(struct PCB **ejecucion, int *HazPush, int *quantum, int *programa_cargado, struct PCB **listos, int opcion) {
+
+
+    imprimirTMP(ejecucion, opcion);
 
     //leer del swap y sacar el dato
+    int Limite_pc = (*ejecucion)->LimitePC;
     int PC = (*ejecucion)->PC;
     int marco = PC / 16;
     int offset = PC % 16;
-    int marco_swap = (*ejecucion)->TMP[marco];
+    int marco_swap = (*ejecucion)->TMP.SWAP[marco];
     int tamano_marco = 16;
     int desplazamiento_real = (marco_swap * tamano_marco + offset) * 32; //sin 32 es DRS
+    
     int DRS = (marco_swap << 4) | offset;
-    //mover el puntero
-    fseek(file, desplazamiento_real, SEEK_SET);
+
+    //aqui llamamos las funciones para actualizar la ram, ya que hemos agarrado un nuevo proceso para meter a ejecucion
+    //pasar cada marco
+    int j1 = 0;
+    if((*ejecucion)->TMP.presencia[marco] == 0){
+        mvprintw(40, 1, "                                        ");
+        mvprintw(40, 1, "Fallo de página    ");
+        refresh();
+        agregarTMM(ejecucion, listos, j1, marco);
+    }
+    
+    j1++;
+
+    //ahora leer de la ram
+    char *instruccion = &RAM[(*ejecucion)->TMP.RAM[marco] * 16 * 32 + offset * 32]; //aqui leemos la ram
+   
+
+    
+
+
 
     // Leer la instrucción del archivo
 
 
     int x = 0; // Recibe el retorno de operaciones de archivo
     if ((*ejecucion)->PC < Limite_pc) { // verificamos que todavia esta dentro de los limites del archivo
-    fread((*ejecucion)->IR, sizeof((*ejecucion)->IR), 1, file); //leemos en el archivo binario 
+
+
+    memcpy((*ejecucion)->IR, instruccion, sizeof((*ejecucion)->IR)); // aqui copiamos el contenido leido de ram a ir
+
+    //cambiar la referencia del marco a uno debido a que se leyo ahi
+    int indice = (*ejecucion)->TMP.RAM[marco];
+   
+    TMM[indice].referencia = 1;
         
         x = validar_operaciones_de_archivo(*ejecucion); // Ejecutamos función pasando la estructura
         (*ejecucion)->KCPU += incCPU;
@@ -469,7 +609,7 @@ int leer_swap(struct PCB **ejecucion, int *HazPush, int *quantum, int *programa_
         actualizarKCPUxU(listos, (*ejecucion)->UID, incCPU);
         (*ejecucion)->PC ++;
         (*quantum)++;
-        impresionPCB(*ejecucion, DRS);
+        impresionPCB(*ejecucion, DRS, (*ejecucion)->TMP.RAM[marco]);
 
         if (x != 0) { // Cuando el archivo tiene un error lo tronamos con su respectivo error
             
@@ -478,7 +618,7 @@ int leer_swap(struct PCB **ejecucion, int *HazPush, int *quantum, int *programa_
             mostrar_errores_de_archivo((*ejecucion), x);
         }
 
-    } else { // Si se llega al final del archivo lo cerramos y (*HazPush) False
+    } else { // Si se llega al final del archivo lo cerramos y (*HazPush) true
         
         (*HazPush) = 1;
         (*quantum) = 0;
@@ -495,6 +635,11 @@ int leer_swap(struct PCB **ejecucion, int *HazPush, int *quantum, int *programa_
     }
     return 0;
 }
+
+
+
+
+
 
 void mensaje_archivoGrande(int pid){
     int ejey = 40;
@@ -537,7 +682,7 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
 
     if (*programa_cargado == 0) {
          //Actualiza los parámetros de planificación, para todos los nodos de la Listos:
-         MeterNuevos_Listos(nuevos, listos);
+        MeterNuevos_Listos(nuevos, listos, ejecucion);
         Actualizar_W();
         Actualizar_planificacion(listos, PBase, W);
         //limpiando ejecucion
@@ -547,7 +692,10 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
         if (*ejecucion != NULL) {
             *programa_cargado = 1;
             *HazPush = 0;
+            
+            
         }
+        
          
     }
 
@@ -556,24 +704,28 @@ void manejar_procesos(struct PCB **listos, struct PCB **terminados, struct PCB *
             push(terminados, ejecucion, listos);//push es para extraer de ejecucion a terminados
             *programa_cargado = 0;
             //chequeo para ver si nuevos se puede meter a listos
-            MeterNuevos_Listos(nuevos, listos);
+            MeterNuevos_Listos(nuevos, listos, ejecucion);
             
         }
     }
 }
 
 
-void printData(int contador_usuarios, int limite, int limiteTMS){
+void printData(int contador_usuarios, int limiteSWAP, int limiteTMS, int limiteRAM, int limiteTMM){
     mvprintw(28, 150, "sleep                  ");
     mvprintw(28, 150, "sleep %d", global_sleep);
     mvprintw(28, 170, "                 ");
     mvprintw(28, 170, "Usuarios %d", contador_usuarios);
     mvprintw(28, 185, "     ");
     mvprintw(28, 185, "W:%.2f", W);
-    mvprintw(28, 200, "                   ");
-    mvprintw(28, 200, "LimiteSwap: %d", limite);
-    mvprintw(28, 220, "                   ");
+    mvprintw(28, 200, "                    ");
+    mvprintw(28, 200, "LimiteSwap: %d", limiteSWAP);
+    mvprintw(28, 220, "                     ");
     mvprintw(28, 220, "LimiteTMS: %d", limiteTMS);
+    mvprintw(28, 240, "                   ");
+    mvprintw(28, 240, "LimiteRAM: %d", limiteRAM);
+    mvprintw(28, 260, "                      ");
+    mvprintw(28, 260, "Limite TMM: %d", limiteTMM);
 
     refresh();
 }
@@ -595,7 +747,7 @@ void cerrarSwap() {
     }
 }
 
-int ImprimirDatosSwap(int opcion, int *referencia) {
+int ImprimirDatosSwap(int opcion, int *referencia, int *marco) {
     // Verificar que el archivo esté abierto
     if (file == NULL) {
         return 404;
@@ -619,17 +771,19 @@ int ImprimirDatosSwap(int opcion, int *referencia) {
     }
 
     // Manejar la opción de avance y retroceso
-    if (opcion == 188 && (*referencia) < TOTAL_MARCOS) {
-        (*referencia) += 96;
-    } else if (opcion == 189 && (*referencia) >= 96) {
-        (*referencia) -= 96;
+    if (opcion == 188 && (*marco) < TOTAL_MARCOS) {
+        (*referencia) += 64;
+        (*marco) += 4;
+    } else if (opcion == 189 && (*marco) > 4) {
+        (*referencia) -= 64;
+        (*marco)+= 4;
     }
 
     // Imprimir el contenido del buffer en el formato específico
     int x = 210; // el eje x en la pantalla
     int encabezado = 34; // de donde empieza a imprimir en la pantalla
     int j = 0; // salto de línea para imprimir las filas
-    int final = (*referencia) + 96; // 96 para mostrar 6 marcos
+    int final = (*referencia) + 64; // 64 para mostrar 4 marcos
     int row = encabezado; // fila inicial
     int col = x; // columna inicial
 
@@ -656,7 +810,7 @@ int ImprimirDatosSwap(int opcion, int *referencia) {
 }
 
 void ImprimirDatosTMS(int opcion, int *referencia){
-    if(opcion == 663 && (*referencia) < TOTAL_MARCOS){ //tms hacia delante
+    if(opcion == 663 && ((*referencia)+16) < TOTAL_MARCOS){ //tms hacia delante
         (*referencia) += 16;
     }else if(opcion == 664 && (*referencia) >=16){
         (*referencia) -= 16;
@@ -668,7 +822,7 @@ void ImprimirDatosTMS(int opcion, int *referencia){
     int final = (*referencia) + 16; //96 para mostrar 6 marcos
     for (long i = (*referencia); i < final; i++){
         mvprintw(encabezado+j, x, "             ");
-        mvprintw(encabezado+j, x, "[%03X]-%d", i, Mapa[i]);
+        mvprintw(encabezado+j, x, "[%03X]-%d", i, TMS[i]);
         j++;
 
     }
@@ -678,10 +832,12 @@ void ImprimirDatosTMS(int opcion, int *referencia){
 
 
 
-void InicializarMapa(){
+
+
+void InicializarTMS(){
     for (int i = 0; i < TOTAL_MARCOS; i++) {
-    Mapa[i] = 0;
-}
+        TMS[i] = 0;
+    }
 }
 
 int main(void) {
@@ -699,8 +855,13 @@ int main(void) {
     int nivel_de_prompt = 0;//en que altura se escribe el prompt (y)
     int HazPush = 0;//para saber si el programa cargado se le hará push
     int programa_cargado = 0;//variable de control para realizar pull y push
+
     int UltimoPuntoEnSwap = 0;
     int UltimoPuntoEnTMS = 0;
+    int UltimoPuntoEnRAM = 0;
+    int UltimoPuntoEnTMM = 0;
+    int marcoRAM = 4;
+    int marcoSWAP = 4;
 
     
     
@@ -712,7 +873,9 @@ int main(void) {
     MensajesAlCrearSwap(CrearArhivoSwap());
     MensajesAlCrearSwap(abrirSwap()); 
     ZonaTMS();
-    InicializarMapa();
+    InicializarTMS();
+    InicializarTMM();
+    InicializarRAM();
 
     
     while (respuesta_a_shell != 10) {
@@ -720,18 +883,22 @@ int main(void) {
         
         respuesta_a_shell = atiende_shell(comando, &posicion_de_char, &nivel_de_prompt);
         mostrar_respuesta_a_comandos(respuesta_a_shell, comando, &posicion_de_char, &nivel_de_prompt);
-        ImprimirDatosSwap(respuesta_a_shell, &UltimoPuntoEnSwap);
+        ImprimirDatosSwap(respuesta_a_shell, &UltimoPuntoEnSwap, &marcoSWAP);
         ImprimirDatosTMS(respuesta_a_shell, &UltimoPuntoEnTMS);
+        ImprimirZonaRAM(&UltimoPuntoEnRAM, respuesta_a_shell, &marcoRAM);
+        ImprimirDatosTMM(respuesta_a_shell, &UltimoPuntoEnTMM);
+
         imprimir_ejecion(ejecucion, 140, 3);
         imprimir_listos(listos, 82, 35);
         imprimir_terminados(terminados, 140, 35);
         imprimir_nuevos(nuevos, 1, 56);
-        printData(contador_usuarios, UltimoPuntoEnSwap, UltimoPuntoEnTMS);
+
+        printData(contador_usuarios, UltimoPuntoEnSwap, UltimoPuntoEnTMS, UltimoPuntoEnRAM, UltimoPuntoEnTMM);
 
         manejar_procesos(&listos, &terminados, &ejecucion, &nuevos,  &HazPush, &programa_cargado, respuesta_a_shell);
         if (programa_cargado==1){//si HazPush es 1 entonces podemos seguir leyendo el archivo
             usleep(global_sleep); //espera para ver cada lectura del archivo
-            leer_swap(&ejecucion, &HazPush, &quantum, &programa_cargado, &listos);        
+            leer_swap(&ejecucion, &HazPush, &quantum, &programa_cargado, &listos, respuesta_a_shell);        
             }
         
 
@@ -743,7 +910,7 @@ int main(void) {
         
 
         
-        
+        refresh();
         }
 
     
@@ -751,13 +918,16 @@ int main(void) {
 
 
     endwin();
-    printf("Antes de liberar recursos: ejecucion=%p, listos=%p, terminados=%p, listos=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados, (void*)nuevos);
+    printf("Antes de liberar recursos: ejecucion=%p, listos=%p, terminados=%p, nuevos=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados, (void*)nuevos);
     librerar_recursos(ejecucion);
     liberar_listos(&listos);
     liberar_lista_terminados(&terminados);
     liberar_nuevos(&nuevos);
-    printf("Después de liberar recursos: ejecucion=%p, listos=%p, terminados=%p, listos=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados, (void*)nuevos);
+    printf("Después de liberar recursos: ejecucion=%p, listos=%p, terminados=%p, nuevos=%p\n", (void*)ejecucion, (void*)listos, (void*)terminados, (void*)nuevos);
     cerrarSwap();
-
+    for(int i = 0; i < 256*32; i++){
+        printf("%c", RAM[i]);
+    }
+    
     return 0;
 }
